@@ -10,33 +10,42 @@ from .generic_dict import Dict as GenericDict, Keyable, KeysBuilder
 struct IDPair(Keyable, KeyElement):
     var data: SIMD[DType.uint64, 2]
 
+    @always_inline("nodebug")
     fn __init__(inout self, id1: Int, id2: Int):
         self.data = SIMD[DType.uint64, 2](id1, id2)
 
+    @always_inline("nodebug")
     fn __init__(inout self, id1: String, id2: String) raises:
         self.data = SIMD[DType.uint64, 2](atol(id1), atol(id2))
 
+    @always_inline("nodebug")
+    fn __eq__(self, other: Self) -> Bool:
+        return self.data == other.data
+
+    @always_inline("nodebug")
+    fn __ne__(self, other: Self) -> Bool:
+        return self.data != other.data
+
+    @always_inline("nodebug")
+    fn __str__(self) -> String:
+        return "(" + str(self.data[0]) + ", " + str(self.data[1]) + ")"
+
+    @always_inline("nodebug")
+    fn __hash__(self) -> Int:
+        return hash(self.data[0] + 31 * self.data[1])
+
+    @always_inline("nodebug")
     fn accept[T: KeysBuilder](self, inout keys_builder: T):
         keys_builder.add(self.data[0])
         keys_builder.add(self.data[1])
 
-    fn __eq__(self, other: Self) -> Bool:
-        return self.data == other.data
-
-    fn __ne__(self, other: Self) -> Bool:
-        return self.data != other.data
-
-    fn __str__(self) -> String:
-        return "(" + str(self.data[0]) + ", " + str(self.data[1]) + ")"
-
+    @always_inline("nodebug")
     fn get_model_string(self) -> String:
         return str(self.data[0]) + " " + str(self.data[1])
 
+    @always_inline("nodebug")
     fn as_chr(self) -> String:
         return chr(int(self.data[0])) + chr(int(self.data[1]))
-
-    fn __hash__(self) -> Int:
-        return hash(self.data[0] + 31 * self.data[1])
 
 
 @value
