@@ -4,7 +4,7 @@ This project is a port of Andrej Karpathy's [minbpe](https://github.com/karpathy
 
 ## Implementation 
 
-Due to differences in language capabilities, the architecture of the application has been modified to fit the constraints and features of Mojo. While the architecture is different, the core functionalities and behaviors of the application remain the same as in the original.
+Due to differences in language capabilities, the architecture of this port has been modified to fit the constraints and features of Mojo. While the architecture is different, the core functionalities and behaviors of the application remain the same as in the original.
 
 ## Available Tokenizer
 
@@ -16,7 +16,8 @@ Tokenizers in `mojobpe` are implemented by confirming to the `TokenizationStrate
 
 ## Quick Start
  
- Start by installing the Python library `regex`. We rely on `regex` because Mojo currently lacks a powerful native regular expression library. Mojo's ability to utilize Python libraries allows us to enhance functionality in this way.
+- First make sure you have [Mojo 24.3](https://docs.modular.com/mojo/manual/get-started/)  
+ - In addtion you need to install the Python library `regex`. We rely on `regex` because Mojo currently lacks a powerful native regular expression library. Mojo's ability to utilize Python libraries allows us to enhance functionality in this way.
 
  ```bash
  pip install regex
@@ -57,7 +58,7 @@ mojo train.mojo
 
 - We achieved a significant performance boost by utilizing [Maxim Zaks'](https://github.com/mzaks) exceptional Mojo library, [CompactDict](https://github.com/mzaks/compact-dict), which provides blazing fast dictionary implementations. We've incorporated a slightly modified version of this library in the `mojobe.utils` folder (`generic_dict` and `string_dict`); all credits go to him.
 - [Gregor Purdy](https://github.com/gnp) has implemented an impressive Rust port of `minbpe`. In our initial tests, Gregor's port slightly outperforms our current Mojo version. Remarkable project.
-- We are excited to provide a detailed performance comparison between the original and the two ports soon. This effort is not about competing for speed but to inspire one another in creating excellent, high-performance, open-source projects.
+- We are excited to provide a detailed performance comparison between the original and the two available ports soon. This effort is not about competing for speed but to inspire one another in creating excellent, high-performance, open-source projects.
 
 ## License
 
