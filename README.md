@@ -23,7 +23,7 @@ Tokenizers in `minbpe.mojo` are implemented by confirming to the `TokenizationSt
  pip install regex
  ```
 
-- The quick start example from `minbpe` can be implement with `minbpe.mojo` as follows:
+- The [quick start](https://github.com/karpathy/minbpe?tab=readme-ov-file#quick-start) example from `minbpe` can be implement with `minbpe.mojo` as follows:
 
  ```python
 from mojobpe import Tokenizer,BasicTokenizationStrategy
