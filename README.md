@@ -2,6 +2,8 @@
 
 This project is a port of Andrej Karpathy's [minbpe](https://github.com/karpathy/minbpe) to [Mojo](https://docs.modular.com/mojo), currently in alpha and actively developed. Not all features of `minpe` are available yet, but they will be introduced as the project evolves.
 
+'Minibe' implements the Byte Pair Encoding (BPE) algorithm, which is commonly used in large language models (LLMs) tokenization in large language models (LLMs). For a comprehensive explanation of this project, visit its GitHub page at [https://github.com/karpathy/minbpe](https://github.com/karpathy/minbpe).
+
 ## Implementation
 
 Due to differences in language capabilities, the architecture of this port has been modified to fit the constraints and features of Mojo. While the architecture is different, the core functionalities and behaviors of the application remain the same as in the original. As Mojo's language features continue to evolve, we expect to further refine and redesign the project.
