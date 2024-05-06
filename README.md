@@ -45,12 +45,19 @@ fn main() raises:
 
 ## Benchmarks 
 
-coming soon
+A detailed benchmark analysis will be available soon.
+
+For now we have included a Mojo port of `train.py` from the original repository, which times the training of both the Basic and Regex Tokenizer with the text from Taylor Swift's Wikipedia page. In our preliminary tests, the Mojo version proves to be approximately three times faster than the original Python implementation. You can run this training benchmark test using the following command:
+
+```bash
+mojo train.mojo
+```
 
 ### Remarks
-- We included a Mojo port of `train.py` from the orignial repo which measures the time for training both the Basic and Regex Tokenizer with the text from Taylor Swift's wikipedia page. In our first tests, our Mojo version is around 3 times faster that then the python original.
-- We achieved big performace boost by utlizings [Maxim Zaks](https://github.com/mzaks) excellent Mojo libraray [CompactDict](https://github.com/mzaks/compact-dict), which offers blazing fast dictionary implementations in Mojo. As we use a slightly modified version of it we include the lib in `mojobe.utils` folder, yet all credits to him. 
-- [Gregor Purdy](https://github.com/gnp) has implement an excellent Rust port of `minbpe` In our first tests, Gergor's port is slightly faster than our current Mojo port. We are looking forward to give detailed performance comparison between the orignal and the two available ports. This is of course not about who is fastest but how to inspire each other to build excellent, performand open source projects.  
+
+- We achieved a significant performance boost by utilizing [Maxim Zaks'](https://github.com/mzaks) exceptional Mojo library, [CompactDict](https://github.com/mzaks/compact-dict), which provides blazing fast dictionary implementations. We've incorporated a slightly modified version of this library in the `mojobe.utils` folder (`generic_dict` and `string_dict`); all credits go to him.
+- [Gregor Purdy](https://github.com/gnp) has implemented an impressive Rust port of `minbpe`. In our initial tests, Gregor's port slightly outperforms our current Mojo version. Remarkable project.
+- We are excited to provide a detailed performance comparison between the original and the two ports soon. This effort is not about competing for speed but to inspire one another in creating excellent, high-performance, open-source projects.
 
 ## License
 
