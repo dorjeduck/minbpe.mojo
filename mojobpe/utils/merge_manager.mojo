@@ -1,4 +1,5 @@
 from algorithm import parallelize
+from math import min
 from collections import Set
 
 from .tat import print_list_int, distribute_jobs
@@ -7,34 +8,35 @@ from .generic_dict import Dict as GenericDict, Keyable, KeysBuilder
 
 @value
 struct IDPair(Keyable, KeyElement):
-    var id1: Int
-    var id2: Int
+    var data: SIMD[DType.uint64, 2]
+
+    fn __init__(inout self, id1: Int, id2: Int):
+        self.data = SIMD[DType.uint64, 2](id1, id2)
 
     fn __init__(inout self, id1: String, id2: String) raises:
-        self.id1 = atol(id1)
-        self.id2 = atol(id2)
+        self.data = SIMD[DType.uint64, 2](atol(id1), atol(id2))
 
     fn accept[T: KeysBuilder](self, inout keys_builder: T):
-        keys_builder.add((Int64(self.id1)))
-        keys_builder.add((Int64(self.id2)))
+        keys_builder.add(self.data[0])
+        keys_builder.add(self.data[1])
 
     fn __eq__(self, other: Self) -> Bool:
-        return self.id1 == other.id1 and self.id2 == other.id2
+        return self.data == other.data
 
     fn __ne__(self, other: Self) -> Bool:
-        return self.id1 != other.id1 or self.id2 != other.id2
+        return self.data != other.data
 
     fn __str__(self) -> String:
-        return "(" + str(self.id1) + ", " + str(self.id2) + ")"
+        return "(" + str(self.data[0]) + ", " + str(self.data[1]) + ")"
 
     fn get_model_string(self) -> String:
-        return str(self.id1) + " " + str(self.id2)
+        return str(self.data[0]) + " " + str(self.data[1])
 
     fn as_chr(self) -> String:
-        return chr(self.id1) + chr(self.id2) + 0
+        return chr(int(self.data[0])) + chr(int(self.data[1]))
 
     fn __hash__(self) -> Int:
-        return hash(self.id1 + 31 * self.id2)
+        return hash(self.data[0] + 31 * self.data[1])
 
 
 @value
@@ -194,9 +196,9 @@ struct MergeManager:
         var gone = 0
         while i < len(ids):
             if (
-                ids[i] == merge_rule.input_id_pair.id1
+                ids[i] == int(merge_rule.input_id_pair.data[0])
                 and i < len(ids) - 1
-                and ids[i + 1] == merge_rule.input_id_pair.id2
+                and ids[i + 1] == int(merge_rule.input_id_pair.data[1])
             ):
                 ids[i - gone] = merge_rule.merge_id
                 i += 2

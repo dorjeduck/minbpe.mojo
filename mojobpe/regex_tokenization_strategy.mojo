@@ -94,8 +94,8 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
                 
             self.merge_manager_ptr[].add_rule(merge_rule) 
 
-            var new_vocab = self.vocab_manager_ptr[].get_token(max_pair.id1) +
-                            self.vocab_manager_ptr[].get_token(max_pair.id2) 
+            var new_vocab = self.vocab_manager_ptr[].get_token(int(max_pair.data[0])) +
+                            self.vocab_manager_ptr[].get_token(int(max_pair.data[1])) 
         
             self.vocab_manager_ptr[].add_token(idx,new_vocab)
 

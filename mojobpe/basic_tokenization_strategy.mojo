@@ -50,8 +50,8 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
            
             self.merge_manager_ptr[].add_rule(merge_rule) 
 
-            var new_vocab = self.vocab_manager_ptr[].get_token(max_pair.id1) +
-                            self.vocab_manager_ptr[].get_token(max_pair.id2) 
+            var new_vocab = self.vocab_manager_ptr[].get_token(int(max_pair.data[0])) +
+                            self.vocab_manager_ptr[].get_token(int(max_pair.data[1])) 
         
             self.vocab_manager_ptr[].add_token(idx,new_vocab)
 
@@ -68,7 +68,7 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
         return self.vocab_manager_ptr[].get_tokens(ids)
 
     fn load(inout self, model_file:String) raises -> None:
-        """Inverse of save() but only for the model file"""
+        """Inverse of save() but only for the model file."""
 
         # read the model file
         with open(model_file, 'r') as f:
