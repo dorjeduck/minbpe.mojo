@@ -4,7 +4,7 @@ This project is a port of Andrej Karpathy's [minbpe](https://github.com/karpathy
 
 ## Implementation
 
-Due to differences in language capabilities, the architecture of this port has been modified to fit the constraints and features of Mojo. While the architecture is different, the core functionalities and behaviors of the application remain the same as in the original.
+Due to differences in language capabilities, the architecture of this port has been modified to fit the constraints and features of Mojo. While the architecture is different, the core functionalities and behaviors of the application remain the same as in the original. As Mojo's language features continue to evolve, we expect to further refine and redesign the project.
 
 ## Available Tokenizer
 
