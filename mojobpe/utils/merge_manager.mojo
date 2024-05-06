@@ -1,10 +1,9 @@
-from algorithm import parallelize
 from math import min
 from collections import Set
 
 from .tat import print_list_int, distribute_jobs
-
 from .generic_dict import Dict as GenericDict, Keyable, KeysBuilder
+
 
 @value
 struct IDPair(Keyable, KeyElement):
@@ -53,14 +52,17 @@ struct MergeRule(Stringable):
     var input_id_pair: IDPair
     var merge_id: Int
 
+    @always_inline("nodebug")
     fn __init__(inout self, input_id_pair: IDPair, merge_id: Int):
         self.input_id_pair = input_id_pair
         self.merge_id = merge_id
 
+    @always_inline("nodebug")
     fn __init__(inout self, input_id1: Int, input_id2: Int, merge_id: Int):
         self.input_id_pair = IDPair(input_id1, input_id2)
         self.merge_id = merge_id
 
+    @always_inline("nodebug")
     fn __str__(self) -> String:
         return str(self.input_id_pair) + " -> " + str(self.merge_id)
 
@@ -68,28 +70,33 @@ struct MergeRule(Stringable):
 struct MergeManager:
     var merge_rules: List[MergeRule]
 
+    @always_inline("nodebug")
     fn __init__(inout self):
         self.merge_rules = List[MergeRule]()
 
+    @always_inline("nodebug")
     fn clear(inout self):
-        self.merge_rules = List[MergeRule]()
+        self.merge_rules.clear()
 
+    @always_inline("nodebug")
     fn add_rule(inout self, merge_rule: MergeRule):
         self.merge_rules.append(merge_rule)
 
+    @always_inline("nodebug")
     fn apply_rules(self, inout ids: List[Int]) raises -> None:
         while True:
             var merged = False
             var unique_pairs = MergeManager.get_unique_pairs(ids)
-            for mr in self.merge_rules:
+            for rule in self.merge_rules:
+                var rule_value = rule[]
                 for up in unique_pairs:
-                    if mr[].input_id_pair == up[]:
-                        MergeManager.merge(ids, mr[])
+                    if rule_value.input_id_pair == up[]:
+                        MergeManager.merge(ids, rule_value)
                         merged = True
                         break
-                if merged:  # something found
+                if merged:
                     break
-            if not merged:  # nothing found anymore
+            if not merged:
                 break
 
     @staticmethod
