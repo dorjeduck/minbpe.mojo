@@ -57,7 +57,7 @@ mojo train.mojo
 ### Remarks
 
 - We achieved a significant performance boost by utilizing [Maxim Zaks'](https://github.com/mzaks) exceptional Mojo library, [CompactDict](https://github.com/mzaks/compact-dict), which provides blazing fast dictionary implementations. We've incorporated a slightly modified version of this library in the `mojobe.utils` folder (`generic_dict` and `string_dict`); all credits go to him.
-- [Gregor Purdy](https://github.com/gnp) has implemented an impressive Rust port of `minbpe`. In our initial tests, Gregor's port slightly outperforms our current Mojo version. Remarkable project.
+- [Gregor Purdy](https://github.com/gnp) has implemented an impressive Rust port of `minbpe`. In our initial tests, Gregor's port slightly outperforms our current Mojo port. Remarkable project.
 
 ## License
 
