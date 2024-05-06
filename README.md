@@ -8,7 +8,7 @@ Due to differences in language capabilities, the architecture of this port has b
 
 ## Available Tokenizer
 
-Tokenizers in `mojobpe` are implemented by confirming to the `TokenizationStrategy` trait, which defines the required methods around tokenization processes.
+Tokenizers in `minbpe.mojo` are implemented by confirming to the `TokenizationStrategy` trait, which defines the required methods around tokenization processes.
 
 - **BasicTokenizationStrategy**: Implements the BasicTokenizer, the simplest implementation of the BPE algorithm that runs directly on text.
 - **RegexTokenizationStrategy**: Implements the RegexTokenizer that further splits the input text by a regex pattern, which is a preprocessing stage that splits up the input text by categories.
@@ -16,14 +16,14 @@ Tokenizers in `mojobpe` are implemented by confirming to the `TokenizationStrate
 
 ## Quick Start
  
-- First make sure you have [Mojo 24.3](https://docs.modular.com/mojo/manual/get-started/)  
+- First make sure you have [Mojo 24.3](https://docs.modular.com/mojo/manual/get-started/) installed.  
  - In addtion you need to install the Python library `regex`. We rely on `regex` because Mojo currently lacks a powerful native regular expression library. Mojo's ability to utilize Python libraries allows us to enhance functionality in this way.
 
  ```bash
  pip install regex
  ```
 
- The quick start example from `minbpe` can be implement with minbpe.mojo as follows:
+ - The quick start example from `minbpe` can be implement with `minbpe.mojo` as follows:
 
  ```python
 from mojobpe import Tokenizer,BasicTokenizationStrategy
@@ -58,7 +58,6 @@ mojo train.mojo
 
 - We achieved a significant performance boost by utilizing [Maxim Zaks'](https://github.com/mzaks) exceptional Mojo library, [CompactDict](https://github.com/mzaks/compact-dict), which provides blazing fast dictionary implementations. We've incorporated a slightly modified version of this library in the `mojobe.utils` folder (`generic_dict` and `string_dict`); all credits go to him.
 - [Gregor Purdy](https://github.com/gnp) has implemented an impressive Rust port of `minbpe`. In our initial tests, Gregor's port slightly outperforms our current Mojo version. Remarkable project.
-- We are excited to provide a detailed performance comparison between the original and the two available ports soon. This effort is not about competing for speed but to inspire one another in creating excellent, high-performance, open-source projects.
 
 ## License
 
