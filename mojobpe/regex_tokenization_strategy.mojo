@@ -3,6 +3,7 @@ from python import Python
 
 from .utils import IDPair, MergeManager,MergeRule,VocabManager,TokenData
 from .utils.generic_dict import Dict as GenericDict
+from .utils.generic_dict import CounterDict
 
 from .tokenizer import TokenizationStrategy
 
@@ -65,7 +66,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
     
         for i in range(num_merges):
         
-            var stats = GenericDict[Int]()
+            var stats = CounterDict()
             var unique_id_pairs = List[IDPair]()
             
             for chunk_ids in ids:

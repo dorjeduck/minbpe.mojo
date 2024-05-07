@@ -2,8 +2,8 @@ from math import min
 from collections import Set
 
 from .tat import print_list_int, distribute_jobs
-from .generic_dict import Dict as GenericDict, Keyable, KeysBuilder
-
+from .generic_dict import Dict as GenericDict, Keyable, KeysBuilder, Set as GenericSet
+from .generic_dict import CounterDict
 
 @value
 struct IDPair(Keyable, KeyElement):
@@ -101,7 +101,7 @@ struct MergeManager:
 
     @staticmethod
     fn __get_unique_pairs(ids: List[Int]) raises -> List[IDPair]:
-        alias MAX_WORK_ITEMS = 200
+        alias MAX_WORK_ITEMS = 100
 
         var n_jobs = len(ids) - 1
         var num_work_items = min(MAX_WORK_ITEMS, n_jobs // 100)
@@ -142,15 +142,13 @@ struct MergeManager:
 
     @staticmethod
     fn get_unique_pairs(ids: List[Int]) raises -> List[IDPair]:
-        var tmp = GenericDict[Bool]()
+        var tmp = GenericSet()
 
         var unique_pairs = List[IDPair]()
-
-        var gone: Int = 0
-
+        
         for i in range(0, len(ids) - 1):
             var p = IDPair(ids[i], ids[i + 1])
-            if tmp.put(p, True):
+            if tmp.put(p):
                 unique_pairs.append(p)
 
         return unique_pairs
@@ -158,18 +156,27 @@ struct MergeManager:
     @staticmethod
     @always_inline("nodebug")
     fn update_stats_and_keys(
-        inout stats: GenericDict[Int], inout keys: List[IDPair], ids: List[Int]
+        inout stats: CounterDict, inout keys: List[IDPair], ids: List[Int]
     ) raises -> None:
         for i in range(0, len(ids) - 1):
             var p = IDPair(ids[i], ids[i + 1])
-            var val: Int = stats.get(p, 0) + 1
-            if stats.put(p, val):
+            if stats.increase(p):
+                keys.append(p)
+
+    @staticmethod
+    @always_inline("nodebug")
+    fn update_stats_and_keys_(
+        inout stats: CounterDict, inout keys: List[IDPair], ids: List[Int]
+    ) raises -> None:
+        for i in range(0, len(ids) - 1):
+            var p = IDPair(ids[i], ids[i + 1]) 
+            if stats.increase(p):
                 keys.append(p)
 
     @staticmethod
     @always_inline("nodebug")
     fn update_stats_get_max(
-        inout stats: GenericDict[Int], ids: List[Int]
+        inout stats: CounterDict, ids: List[Int]
     ) raises -> IDPair:
         var unique_id_pairs = List[IDPair]()
         MergeManager.update_stats_and_keys(stats, unique_id_pairs, ids)
@@ -187,8 +194,8 @@ struct MergeManager:
     # does not find the first occuring in the case of ties
     @staticmethod
     @always_inline("nodebug")
-    fn ___update_stats_get_max(
-        inout stats: GenericDict[Int], ids: List[Int]
+    fn _update_stats_get_max(
+        inout stats: CounterDict, ids: List[Int]
     ) raises -> IDPair:
         var max_val = -1
         var max_id_pair = IDPair(ids[0], ids[1])

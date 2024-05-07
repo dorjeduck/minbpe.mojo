@@ -1,5 +1,5 @@
 from .utils import IDPair, MergeManager,MergeRule,VocabManager
-from .utils.generic_dict import Dict as GenericDict
+from .utils.generic_dict import Dict as GenericDict, CounterDict
 
 from .tokenizer import TokenizationStrategy
 
@@ -37,10 +37,10 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
         for idx in range(256):
             self.vocab_manager_ptr[].add_token(idx,chr(idx))
     
-        for i in range(num_merges):
         
-            var stats = GenericDict[Int]()
-
+        for i in range(num_merges):
+            var stats = CounterDict()
+        
             var max_pair = MergeManager.update_stats_get_max(stats,ids)
             
             var idx = 256 + i 
@@ -54,6 +54,8 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
                             self.vocab_manager_ptr[].get_token(int(max_pair.data[1])) 
         
             self.vocab_manager_ptr[].add_token(idx,new_vocab)
+
+                
 
             if verbose:
                 MergeManager.print_merge_round(i+1,num_merges,merge_rule,new_vocab,stats.get(max_pair,-1))
