@@ -100,47 +100,6 @@ struct MergeManager:
                 break
 
     @staticmethod
-    fn __get_unique_pairs(ids: List[Int]) raises -> List[IDPair]:
-        alias MAX_WORK_ITEMS = 100
-
-        var n_jobs = len(ids) - 1
-        var num_work_items = min(MAX_WORK_ITEMS, n_jobs // 100)
-
-        var dj = distribute_jobs(n_jobs, num_work_items)
-
-        var tmp = Pointer[Set[IDPair]].alloc(num_work_items)
-        tmp[0] = Set[IDPair]()
-
-        @parameter
-        fn _calc(ip: Int):
-            print("-------_")
-            tmp[ip] = Set[IDPair]()
-            print("-------")
-            var end = min(
-                dj[ip + 1] + 1, len(ids)
-            )  # overlap to include all pairs
-            for i in range(dj[ip], end):
-                var p = IDPair(ids[i], ids[i + 1])
-
-                tmp[ip].add(p)
-
-        # parallelize[_calc](num_work_items)
-        for i in range(num_work_items):
-            _calc(i)
-
-        for i in range(1, num_work_items):
-            tmp[0].update(tmp[i])
-
-        _ = dj[0]
-
-        var unique_pairs = List[IDPair]()
-        for e in tmp[0]:
-            unique_pairs.append(e[])
-
-        tmp.free()
-        return unique_pairs
-
-    @staticmethod
     fn get_unique_pairs(ids: List[Int]) raises -> List[IDPair]:
         var tmp = GenericSet()
 
@@ -165,16 +124,6 @@ struct MergeManager:
 
     @staticmethod
     @always_inline("nodebug")
-    fn update_stats_and_keys_(
-        inout stats: CounterDict, inout keys: List[IDPair], ids: List[Int]
-    ) raises -> None:
-        for i in range(0, len(ids) - 1):
-            var p = IDPair(ids[i], ids[i + 1]) 
-            if stats.increase(p):
-                keys.append(p)
-
-    @staticmethod
-    @always_inline("nodebug")
     fn update_stats_get_max(
         inout stats: CounterDict, ids: List[Int]
     ) raises -> IDPair:
@@ -191,27 +140,7 @@ struct MergeManager:
                 max_pair = unique_id_pairs[j]
         return max_pair
 
-    # does not find the first occuring in the case of ties
-    @staticmethod
-    @always_inline("nodebug")
-    fn _update_stats_get_max(
-        inout stats: CounterDict, ids: List[Int]
-    ) raises -> IDPair:
-        var max_val = -1
-        var max_id_pair = IDPair(ids[0], ids[1])
-
-        for i in range(0, len(ids) - 1):
-            var p = IDPair(ids[i], ids[i + 1])
-
-            var val: Int = stats.get(p, 0) + 1
-            _ = stats.put(p, val)
-
-            if val > max_val:
-                max_val = val
-                max_id_pair = p
-
-        return max_id_pair
-
+   
     @staticmethod
     @always_inline("nodebug")
     fn merge(inout ids: List[Int], merge_rule: MergeRule) -> None:
