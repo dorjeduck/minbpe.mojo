@@ -1,40 +1,50 @@
-from algorithm import parallelize
+from math import min
 from collections import Set
 
 from .tat import print_list_int, distribute_jobs
-
 from .generic_dict import Dict as GenericDict, Keyable, KeysBuilder
+
 
 @value
 struct IDPair(Keyable, KeyElement):
-    var id1: Int
-    var id2: Int
+    var data: SIMD[DType.uint64, 2]
 
+    @always_inline("nodebug")
+    fn __init__(inout self, id1: Int, id2: Int):
+        self.data = SIMD[DType.uint64, 2](id1, id2)
+
+    @always_inline("nodebug")
     fn __init__(inout self, id1: String, id2: String) raises:
-        self.id1 = atol(id1)
-        self.id2 = atol(id2)
+        self.data = SIMD[DType.uint64, 2](atol(id1), atol(id2))
 
-    fn accept[T: KeysBuilder](self, inout keys_builder: T):
-        keys_builder.add((Int64(self.id1)))
-        keys_builder.add((Int64(self.id2)))
-
+    @always_inline("nodebug")
     fn __eq__(self, other: Self) -> Bool:
-        return self.id1 == other.id1 and self.id2 == other.id2
+        return self.data == other.data
 
+    @always_inline("nodebug")
     fn __ne__(self, other: Self) -> Bool:
-        return self.id1 != other.id1 or self.id2 != other.id2
+        return self.data != other.data
 
+    @always_inline("nodebug")
     fn __str__(self) -> String:
-        return "(" + str(self.id1) + ", " + str(self.id2) + ")"
+        return "(" + str(self.data[0]) + ", " + str(self.data[1]) + ")"
 
-    fn get_model_string(self) -> String:
-        return str(self.id1) + " " + str(self.id2)
-
-    fn as_chr(self) -> String:
-        return chr(self.id1) + chr(self.id2) + 0
-
+    @always_inline("nodebug")
     fn __hash__(self) -> Int:
-        return hash(self.id1 + 31 * self.id2)
+        return hash(self.data[0] + 31 * self.data[1])
+
+    @always_inline("nodebug")
+    fn accept[T: KeysBuilder](self, inout keys_builder: T):
+        keys_builder.add(self.data[0])
+        keys_builder.add(self.data[1])
+
+    @always_inline("nodebug")
+    fn get_model_string(self) -> String:
+        return str(self.data[0]) + " " + str(self.data[1])
+
+    @always_inline("nodebug")
+    fn as_chr(self) -> String:
+        return chr(int(self.data[0])) + chr(int(self.data[1]))
 
 
 @value
@@ -42,14 +52,17 @@ struct MergeRule(Stringable):
     var input_id_pair: IDPair
     var merge_id: Int
 
+    @always_inline("nodebug")
     fn __init__(inout self, input_id_pair: IDPair, merge_id: Int):
         self.input_id_pair = input_id_pair
         self.merge_id = merge_id
 
+    @always_inline("nodebug")
     fn __init__(inout self, input_id1: Int, input_id2: Int, merge_id: Int):
         self.input_id_pair = IDPair(input_id1, input_id2)
         self.merge_id = merge_id
 
+    @always_inline("nodebug")
     fn __str__(self) -> String:
         return str(self.input_id_pair) + " -> " + str(self.merge_id)
 
@@ -57,28 +70,33 @@ struct MergeRule(Stringable):
 struct MergeManager:
     var merge_rules: List[MergeRule]
 
+    @always_inline("nodebug")
     fn __init__(inout self):
         self.merge_rules = List[MergeRule]()
 
+    @always_inline("nodebug")
     fn clear(inout self):
-        self.merge_rules = List[MergeRule]()
+        self.merge_rules.clear()
 
+    @always_inline("nodebug")
     fn add_rule(inout self, merge_rule: MergeRule):
         self.merge_rules.append(merge_rule)
 
+    @always_inline("nodebug")
     fn apply_rules(self, inout ids: List[Int]) raises -> None:
         while True:
             var merged = False
             var unique_pairs = MergeManager.get_unique_pairs(ids)
-            for mr in self.merge_rules:
+            for rule in self.merge_rules:
+                var rule_value = rule[]
                 for up in unique_pairs:
-                    if mr[].input_id_pair == up[]:
-                        MergeManager.merge(ids, mr[])
+                    if rule_value.input_id_pair == up[]:
+                        MergeManager.merge(ids, rule_value)
                         merged = True
                         break
-                if merged:  # something found
+                if merged:
                     break
-            if not merged:  # nothing found anymore
+            if not merged:
                 break
 
     @staticmethod
@@ -194,9 +212,9 @@ struct MergeManager:
         var gone = 0
         while i < len(ids):
             if (
-                ids[i] == merge_rule.input_id_pair.id1
+                ids[i] == int(merge_rule.input_id_pair.data[0])
                 and i < len(ids) - 1
-                and ids[i + 1] == merge_rule.input_id_pair.id2
+                and ids[i + 1] == int(merge_rule.input_id_pair.data[1])
             ):
                 ids[i - gone] = merge_rule.merge_id
                 i += 2
