@@ -4,8 +4,17 @@
 
 from utils import Variant
 
+from .generic_dict import Keyable,KeysBuilder
+
 alias IntOrString = Variant[Int, String]
 
+
+@value
+struct IntKey(Keyable):
+    var key:UInt64
+    @always_inline("nodebug")
+    fn accept[T: KeysBuilder](self, inout keys_builder: T):
+        keys_builder.add(self.key)
 
 fn distribute_jobs(n_jobs: Int, n_workers: Int, overlap: Int = 0) -> List[Int]:
     """

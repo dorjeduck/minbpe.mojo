@@ -4,13 +4,14 @@ from math import min
 from python import Python
 
 from .merge_manager import MergeManager
-
+from .stringbuilder import StringBuilder
 from .string_dict import Dict as StringDict
-from .tat import distribute_jobs, print_list_int
+from .generic_dict import Dict as GenericDict,Keyable,KeyElement,KeysBuilder
+from .tat import distribute_jobs, print_list_int, IntKey
 
 alias SPECIAL_TOKENS_PATTERN = r"(['\"])(.*?)\1\s*:\s*(\d+)"
 
-
+       
 @value
 struct TokenData:
     var token: String
@@ -33,54 +34,57 @@ struct TokenData:
 
 
 struct VocabManager:
-    var vocab: StringDict[String]
+    var vocab: GenericDict[String]
     var special_tokens: StringDict[String]
-    var inverse_special_tokens: StringDict[String]
+    var inverse_special_tokens: GenericDict[String]
     var regex: PythonObject
 
     var special_token_list: List[TokenData]
 
     fn __init__(inout self) raises:
-        self.vocab = StringDict[String]()
+        self.vocab = GenericDict[String]()
         self.special_tokens = StringDict[String]()
 
         self.special_token_list = List[TokenData]()
 
-        self.inverse_special_tokens = StringDict[String]()
+        self.inverse_special_tokens = GenericDict[String]()
         self.regex = Python.import_module("regex")
         self.build_vocab()
 
     fn clear(inout self):
-        self.vocab = StringDict[String]()
+        self.vocab = GenericDict[String]()
         self.special_tokens = StringDict[String]()
-        self.inverse_special_tokens = StringDict[String]()
+        self.inverse_special_tokens = GenericDict[String]()
         self.special_token_list = List[TokenData]()
 
     @always_inline("nodebug")
-    fn add_token(inout self, idx: Int, token: String) -> None:
-        self.vocab.put(str(idx), token)
+    fn add_token(inout self, idx: Int, token: String) raises -> None:
+        _ = self.vocab.put(IntKey(idx), token)
 
     @always_inline("nodebug")
-    fn get_token(self, idx: Int, include_special: Bool = False) -> String:
-        var res = self.vocab.get(str(idx), "")
+    fn get_token(inout self, idx: Int, include_special: Bool = False) raises  -> String:
+       
+        var res = self.vocab.get(IntKey(idx), "")
+        
         if include_special and len(res) == 0:
             res = self.get_special_token(idx)
         return res
 
     @always_inline("nodebug")
     fn get_tokens_simple(
-        self, ids: List[Int], include_special: Bool = False
+        inout self, ids: List[Int], include_special: Bool = False
     ) raises -> String:
-        var res: String = ""
+       
+        var res = StringBuilder()
         for i in range(len(ids)):
-            res += self.get_token(ids[i], include_special)
-        return res
+            res.append(self.get_token(ids[i], include_special))
+        return str(res)
 
     @always_inline("nodebug")
     fn get_tokens(
-        self, ids: List[Int], include_special: Bool = False
+        inout self, ids: List[Int], include_special: Bool = False
     ) raises -> String:
-        alias MAX_WORK_ITEMS = 200
+        alias MAX_WORK_ITEMS = 10
         var n_jobs = len(ids)
 
         if n_jobs < 1000:
@@ -88,16 +92,19 @@ struct VocabManager:
         else:
             var num_work_items = min(MAX_WORK_ITEMS, n_jobs // 100)
             var dj = distribute_jobs(n_jobs, num_work_items)
-
             var rl = List[String](capacity=num_work_items + 1)
-            rl.resize(num_work_items + 1, "")
-
+            rl.resize(num_work_items,"")
             @parameter
             fn _calc(ip: Int):
-                rl[ip] = String("")
+                #rl[ip] = ""
+                var sb  = StringBuilder()  
                 for i in range(dj[ip], dj[ip + 1]):
-                    rl[ip] += self.get_token(ids[i], include_special)
-
+                    try:
+                        sb.append(self.get_token(ids[i], include_special))
+                    except:
+                        pass
+                    #rl[ip] +=self.get_token(ids[i], include_special)
+                rl[ip] = str(sb)
             parallelize[_calc](num_work_items)
 
             _ = dj[0]  # dj lifetime insurance ....
@@ -108,10 +115,10 @@ struct VocabManager:
 
             return res
 
-    fn build_vocab(inout self) -> None:  # , special_tokens):
+    fn build_vocab(inout self) raises -> None:  # , special_tokens):
         # Initialize with single-byte tokens.
         for idx in range(256):
-            self.vocab.put(str(idx), chr(idx))
+            _ = self.vocab.put(IntKey(idx), chr(idx))
 
     fn register_special_tokens(inout self, special_tokens_str: String) raises:
         var compiled_pattern = self.regex.compile(SPECIAL_TOKENS_PATTERN)
@@ -123,9 +130,9 @@ struct VocabManager:
         for st in special_tokens:
             self.register_special_token(TokenData(st[1], atol(st[2])))
 
-    fn register_special_token(inout self, st: TokenData):
+    fn register_special_token(inout self, st: TokenData) raises:
         self.special_tokens.put(st.token, st.id)
-        self.inverse_special_tokens.put(st.id, st.token)
+        _ = self.inverse_special_tokens.put(IntKey(st.id), st.token)
         self.special_token_list.append(st)
 
     fn split_by_special_tokens(self, text: String) raises -> List[String]:
@@ -157,8 +164,8 @@ struct VocabManager:
         return atol(self.special_tokens.get(text, -1))
 
     @always_inline("nodebug")
-    fn get_special_token(self, id: Int) -> String:
-        return self.inverse_special_tokens.get(id, "")
+    fn get_special_token(inout self, id: Int) raises -> String:
+        return self.inverse_special_tokens.get(IntKey(id), "")
 
     @always_inline("nodebug")
     fn check_special_token_in_text(self, text: String) -> Bool:

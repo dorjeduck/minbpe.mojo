@@ -2,7 +2,6 @@ from algorithm import parallelize
 from python import Python
 
 from .utils import IDPair, MergeManager,MergeRule,VocabManager,TokenData
-from .utils.generic_dict import Dict as GenericDict
 from .utils.generic_dict import CounterDict
 
 from .tokenizer import TokenizationStrategy
@@ -30,7 +29,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
         self.merge_manager_ptr = merge_manager_ptr
         self.vocab_manager_ptr = vocab_manager_ptr
 
-    fn clear(inout self):
+    fn clear(inout self) raises:
         self.pattern = ""
         self.compiled_pattern = PythonObject()
         self.merge_manager_ptr[].clear()
@@ -110,8 +109,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
             var chunk_ids = VocabManager.text_to_bytes(tc)
             if len(chunk_ids)>1:
                 self.merge_manager_ptr[].apply_rules(chunk_ids)
-           
-           
+                  
             ids.extend(chunk_ids)
         
         return ids

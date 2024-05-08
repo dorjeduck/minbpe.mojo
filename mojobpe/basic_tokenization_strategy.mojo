@@ -1,5 +1,5 @@
 from .utils import IDPair, MergeManager,MergeRule,VocabManager
-from .utils.generic_dict import Dict as GenericDict, CounterDict
+from .utils.generic_dict import CounterDict
 
 from .tokenizer import TokenizationStrategy
 
@@ -11,12 +11,13 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
     fn __init__(inout self) raises:
         self.merge_manager_ptr = Pointer[MergeManager]()
         self.vocab_manager_ptr = Pointer[VocabManager]()
-          
+
+
     fn set(inout self,merge_manager_ptr:Pointer[MergeManager],vocab_manager_ptr:Pointer[VocabManager]):
         self.merge_manager_ptr = merge_manager_ptr
         self.vocab_manager_ptr = vocab_manager_ptr
 
-    fn clear(inout self):
+    fn clear(inout self) raises:
         self.merge_manager_ptr[].clear()
         self.vocab_manager_ptr[].clear()
         self.vocab_manager_ptr[].build_vocab()
@@ -54,8 +55,6 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
                             self.vocab_manager_ptr[].get_token(int(max_pair.data[1])) 
         
             self.vocab_manager_ptr[].add_token(idx,new_vocab)
-
-                
 
             if verbose:
                 MergeManager.print_merge_round(i+1,num_merges,merge_rule,new_vocab,stats.get(max_pair,-1))
