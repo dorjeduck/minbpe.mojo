@@ -10,6 +10,10 @@ struct IDPair(Keyable, KeyElement):
     var data: SIMD[DType.uint64, 2]
 
     @always_inline("nodebug")
+    fn __init__(inout self):
+        self.data = SIMD[DType.uint64, 2](-1, -1)
+
+    @always_inline("nodebug")
     fn __init__(inout self, id1: Int, id2: Int):
         self.data = SIMD[DType.uint64, 2](id1, id2)
 
@@ -69,21 +73,45 @@ struct MergeRule(Stringable):
 
 struct MergeManager:
     var merge_rules: List[MergeRule]
+    var merge_rules_dict : GenericDict[Int]
 
     @always_inline("nodebug")
     fn __init__(inout self):
         self.merge_rules = List[MergeRule]()
+        self.merge_rules_dict = GenericDict[Int]()
 
     @always_inline("nodebug")
     fn clear(inout self):
         self.merge_rules.clear()
+        self.merge_rules_dict = GenericDict[Int]()
 
     @always_inline("nodebug")
-    fn add_rule(inout self, merge_rule: MergeRule):
+    fn add_rule(inout self, merge_rule: MergeRule) raises:
         self.merge_rules.append(merge_rule)
+        _ = self.merge_rules_dict.put(merge_rule.input_id_pair,merge_rule.merge_id)
 
     @always_inline("nodebug")
-    fn apply_rules(self, inout ids: List[Int]) raises -> None:
+    fn apply_rules(inout self, inout ids: List[Int ]) raises -> None:
+        var UPPER_VAL:Int = 100000
+       
+        var min_val = UPPER_VAL
+        var min_pair = IDPair()
+        while True:
+            var min_val = UPPER_VAL
+            var unique_pairs = MergeManager.get_unique_pairs(ids)  
+            for up in unique_pairs:  
+                var val = self.merge_rules_dict.get(up[],UPPER_VAL)
+                if val < min_val:
+                    min_val = val
+                    min_pair = up[]
+            
+            if min_val < UPPER_VAL:
+                MergeManager.merge(ids, MergeRule(min_pair,min_val))
+            else:
+                break
+
+    @always_inline("nodebug")
+    fn apply_rules_slow(self, inout ids: List[Int]) raises -> None:
         while True:
             var merged = False
             var unique_pairs = MergeManager.get_unique_pairs(ids)
