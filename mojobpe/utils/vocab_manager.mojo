@@ -11,7 +11,6 @@ from .tat import distribute_jobs, print_list_int, IntKey
 
 alias SPECIAL_TOKENS_PATTERN = r"(['\"])(.*?)\1\s*:\s*(\d+)"
 
-       
 @value
 struct TokenData:
     var token: String
@@ -77,7 +76,7 @@ struct VocabManager:
        
         var res = StringBuilder()
         for i in range(len(ids)):
-            res.append(self.get_token(ids[i], include_special))
+            res.add(self.get_token(ids[i], include_special))
         return str(res)
 
     @always_inline("nodebug")
@@ -87,7 +86,7 @@ struct VocabManager:
         alias MAX_WORK_ITEMS = 10
         var n_jobs = len(ids)
 
-        if n_jobs < 1000:
+        if n_jobs < 100:
             return self.get_tokens_simple(ids, include_special)
         else:
             var num_work_items = min(MAX_WORK_ITEMS, n_jobs // 100)
@@ -99,8 +98,9 @@ struct VocabManager:
                 #rl[ip] = ""
                 var sb  = StringBuilder()  
                 for i in range(dj[ip], dj[ip + 1]):
-                    try:
-                        sb.append(self.get_token(ids[i], include_special))
+                    try: 
+                        sb.add(self.get_token(ids[i], include_special))
+                        
                     except:
                         pass
                     #rl[ip] +=self.get_token(ids[i], include_special)

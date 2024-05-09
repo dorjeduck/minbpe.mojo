@@ -1,1 +1,1 @@
-from .builder import StringBuilder
+from .stringbuilder import StringBuilder

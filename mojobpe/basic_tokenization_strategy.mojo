@@ -1,5 +1,6 @@
 from .utils import IDPair, MergeManager,MergeRule,VocabManager
 from .utils.generic_dict import CounterDict
+from .utils.tat import IntKey
 
 from .tokenizer import TokenizationStrategy
 
@@ -37,7 +38,6 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
 
         for idx in range(256):
             self.vocab_manager_ptr[].add_token(idx,chr(idx))
-    
         
         for i in range(num_merges):
             var stats = CounterDict()
