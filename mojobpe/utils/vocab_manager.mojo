@@ -4,7 +4,7 @@ from math import min
 from python import Python
 
 from .merge_manager import MergeManager
-from .stringbuilder import StringBuilder
+from .text_builder import StringBuilder,TextBuilder
 from .string_dict import Dict as StringDict
 from .generic_dict import Dict as GenericDict,Keyable,KeyElement,KeysBuilder
 from .tat import distribute_jobs, print_list_int, IntKey
@@ -61,13 +61,17 @@ struct VocabManager:
         _ = self.vocab.put(IntKey(idx), token)
 
     @always_inline("nodebug")
-    fn get_token(inout self, idx: Int, include_special: Bool = False) raises  -> String:
+    fn get_token(inout self, idx: Int, include_special: Bool = False)  -> String:
        
-        var res = self.vocab.get(IntKey(idx), "")
-        
-        if include_special and len(res) == 0:
-            res = self.get_special_token(idx)
-        return res
+        try:
+            var res = self.vocab.get(IntKey(idx), "")
+            
+            if include_special and len(res) == 0:
+                res = self.get_special_token(idx)
+            return res
+        except:
+            print("problem getting token for id",idx)
+            return ""
 
     @always_inline("nodebug")
     fn get_tokens_simple(
@@ -85,35 +89,22 @@ struct VocabManager:
     ) raises -> String:
         alias MAX_WORK_ITEMS = 10
         var n_jobs = len(ids)
-
         if n_jobs < 100:
             return self.get_tokens_simple(ids, include_special)
         else:
             var num_work_items = min(MAX_WORK_ITEMS, n_jobs // 100)
             var dj = distribute_jobs(n_jobs, num_work_items)
-            var rl = List[String](capacity=num_work_items + 1)
-            rl.resize(num_work_items,"")
+            
+            var tb = TextBuilder(num_work_items)        
             @parameter
             fn _calc(ip: Int):
-                #rl[ip] = ""
-                var sb  = StringBuilder()  
                 for i in range(dj[ip], dj[ip + 1]):
-                    try: 
-                        sb.add(self.get_token(ids[i], include_special))
-                        
-                    except:
-                        pass
-                    #rl[ip] +=self.get_token(ids[i], include_special)
-                rl[ip] = str(sb)
+                    tb.add(ip,self.get_token(ids[i], include_special))        
             parallelize[_calc](num_work_items)
 
             _ = dj[0]  # dj lifetime insurance ....
 
-            var res = rl[0]
-            for i in range(1, num_work_items):
-                res += rl[i]
-
-            return res
+            return str(tb)
 
     fn build_vocab(inout self) raises -> None:  # , special_tokens):
         # Initialize with single-byte tokens.
