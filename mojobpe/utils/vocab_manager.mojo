@@ -56,6 +56,15 @@ struct VocabManager:
         self.inverse_special_tokens = GenericDict[String]()
         self.special_token_list = List[TokenData]()
 
+    
+    fn add_token(inout self,mr:MergeRule) raises -> String:
+
+        var new_vocab = self.get_token(int(mr.input_id_pair.data[0])) +
+                        self.get_token(int(mr.input_id_pair.data[1])) 
+        
+        self.add_token(mr.merge_id,new_vocab)
+
+    
     @always_inline("nodebug")
     fn add_token(inout self, idx: Int, token: String) raises -> None:
         _ = self.vocab.put(IntKey(idx), token)
