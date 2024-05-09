@@ -102,6 +102,7 @@ struct VocabManager:
         if n_jobs < 100:
             return self.get_tokens_simple(ids, include_special)
         else:
+            
             var num_work_items = min(MAX_WORK_ITEMS, n_jobs // 100)
             var dj = distribute_jobs(n_jobs, num_work_items)
             
@@ -113,7 +114,7 @@ struct VocabManager:
             parallelize[_calc](num_work_items)
 
             _ = dj[0]  # dj lifetime insurance ....
-
+            
             return str(tb)
 
     fn build_vocab(inout self) raises -> None:  # , special_tokens):

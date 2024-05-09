@@ -100,12 +100,15 @@ struct MergeManager:
             var min_val = UPPER_VAL
             var unique_pairs = MergeManager.get_unique_pairs(ids)  
             for up in unique_pairs:  
+                
                 var val = self.merge_rules_dict.get(up[],UPPER_VAL)
                 if val < min_val:
                     min_val = val
                     min_pair = up[]
             
+            
             if min_val < UPPER_VAL:
+                
                 MergeManager.merge(ids, MergeRule(min_pair,min_val))
             else:
                 break

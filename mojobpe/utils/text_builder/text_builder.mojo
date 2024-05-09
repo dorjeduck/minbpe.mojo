@@ -11,6 +11,7 @@ struct TextBuilder:
             self.ptr[i] = StringBuilder()
 
     fn __del__(owned self):
+
         for i in range(self.size):
             destroy_pointee(self.ptr + i)
         self.ptr.free()
