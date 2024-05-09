@@ -87,7 +87,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
             for chunk_ids in ids:
                 MergeManager.merge(chunk_ids[],merge_rule)
                          
-            self.vocab_manager_ptr[].add_token(merge_rule)
+            var new_vocab = self.vocab_manager_ptr[].add_token(merge_rule)
 
             if verbose:
                 MergeManager.print_merge_round(i+1,num_merges,merge_rule,new_vocab,stats.get(max_pair,-1))

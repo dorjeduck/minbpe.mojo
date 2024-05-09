@@ -50,7 +50,7 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
             MergeManager.merge(ids,merge_rule)
            
             self.merge_manager_ptr[].add_rule(merge_rule) 
-            self.vocab_manager_ptr[].add_token(merge_rule)
+            var new_vocab = self.vocab_manager_ptr[].add_token(merge_rule)
 
             if verbose:
                 MergeManager.print_merge_round(i+1,num_merges,merge_rule,new_vocab,stats.get(max_pair,-1))

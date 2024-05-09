@@ -61,8 +61,9 @@ struct VocabManager:
 
         var new_vocab = self.get_token(int(mr.input_id_pair.data[0])) +
                         self.get_token(int(mr.input_id_pair.data[1])) 
-        
         self.add_token(mr.merge_id,new_vocab)
+
+        return new_vocab
 
     
     @always_inline("nodebug")
