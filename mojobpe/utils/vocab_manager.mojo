@@ -4,7 +4,7 @@ from math import min
 from python import Python
 
 from .merge_manager import MergeManager
-from .text_builder import StringBuilder,TextBuilder
+from .builders import StringBuilder,TextBuilder
 from .string_dict import Dict as StringDict
 from .generic_dict import Dict as GenericDict,Keyable,KeyElement,KeysBuilder
 from .tat import distribute_jobs, print_list_int, IntKey
@@ -110,7 +110,9 @@ struct VocabManager:
             @parameter
             fn _calc(ip: Int):
                 for i in range(dj[ip], dj[ip + 1]):
-                    tb.add(ip,self.get_token(ids[i], include_special))        
+                    #tb.add(ip,self.get_token(ids[i], include_special))  
+                    tb.string_builder[ip].add(self.get_token(ids[i], include_special))        
+      
             parallelize[_calc](num_work_items)
 
             _ = dj[0]  # dj lifetime insurance ....
