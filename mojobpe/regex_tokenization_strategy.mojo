@@ -4,8 +4,10 @@ from time import now
 
 from .utils import IDPair, MergeManager,MergeRule,VocabManager,TokenData
 from .utils.generic_dict import CounterDict
-
+from .utils.tat import MoBench
+from .standards import GPT2_SPLIT_PATTERN,GPT4_SPLIT_PATTERN
 from .tokenizer import TokenizationStrategy
+from .utils.mostring import MoList
 
 
 struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECIAL:String="all"](TokenizationStrategy):
@@ -16,6 +18,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
     var pattern:String
 
     var regex:PythonObject
+    
     var compiled_pattern:PythonObject
 
     fn __init__(inout self) raises:
@@ -94,23 +97,30 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
 
             if verbose:
                 MergeManager.print_merge_round(i+1,num_merges,merge_rule,new_vocab,stats.get(max_pair,-1))
-           
+    
+    fn _encode_ordinary(self, text:String)raises->List[Int]:
+        var ids = VocabManager.text_to_bytes(text)
+        self.merge_manager_ptr[].apply_rules(ids)
+        return ids  
+
     fn encode_ordinary(self, text:String) raises->List[Int]:
         """Encoding that ignores any special tokens."""
         
         # split text into chunks of text by categories defined in regex pattern
         var text_chunks = self.regex.findall(self.compiled_pattern, text)
-        var ids = List[Int]()
+        
+        var mol = MoList[Int](capacity = len(text_chunks)*4)
         # all chunks of text are encoded separately, then results are joined
-        
-        for tc in text_chunks:
-            var chunk_ids = VocabManager.text_to_bytes(tc)
+       
+        for i in range(len(text_chunks)):
+            
+            var chunk_ids = VocabManager.text_to_bytes(text_chunks[i])
             if len(chunk_ids)>1: 
-                self.merge_manager_ptr[].apply_rules(chunk_ids)
-                
-            ids.extend(chunk_ids)
+                self.merge_manager_ptr[].apply_rules(chunk_ids)      
+            mol.extend(chunk_ids)
+        mol.optimize_memory()
         
-        return ids
+        return mol.list
     
     fn encode(self, text:String)raises->List[Int]:
         """
@@ -118,7 +128,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
         allowed_special: can be "all"|"none"|"none_raise" or a custom set of special tokens
         if none_raise, then an error is raised if any special token is encountered in text
         this is the default tiktoken behavior right now as well
-        any other behavior is either annoying, or a major footgun
+        any other behavior is either annoying, or a major footgun.
         """
         # decode the user desire w.r.t. handling of special tokens
         var special:Bool 
@@ -167,7 +177,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
         return self.vocab_manager_ptr[].get_tokens(ids,True)
 
     fn load(inout self, model_file:String) raises -> None:
-        """Inverse of save() but only for the model file"""      
+        """Inverse of save() but only for the model file."""      
         
         with open(model_file, 'r') as f:
 

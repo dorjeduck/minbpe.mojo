@@ -91,7 +91,7 @@ struct MergeManager:
         _ = self.merge_rules_dict.put(merge_rule.input_id_pair,merge_rule.merge_id)
 
     @always_inline("nodebug")
-    fn apply_rules(inout self, inout ids: List[Int ]) raises -> None:
+    fn apply_rules(inout self, inout ids: List[Int]) raises -> None:
         var UPPER_VAL:Int = 100000
        
         var min_val = UPPER_VAL
@@ -105,10 +105,7 @@ struct MergeManager:
                 if val < min_val:
                     min_val = val
                     min_pair = up[]
-            
-            
             if min_val < UPPER_VAL:
-                
                 MergeManager.merge(ids, MergeRule(min_pair,min_val))
             else:
                 break

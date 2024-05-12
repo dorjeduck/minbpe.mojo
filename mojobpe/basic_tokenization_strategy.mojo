@@ -1,6 +1,6 @@
 from .utils import IDPair, MergeManager,MergeRule,VocabManager
 from .utils.generic_dict import CounterDict
-from .utils.tat import IntKey
+from .utils.tat import IntKey,MoBench
 
 from .tokenizer import TokenizationStrategy
 
@@ -33,8 +33,8 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
         debug_assert(vocab_size >= 256,"vocab size too small (<256)")
 
         var num_merges = vocab_size - 256
-
         var ids = VocabManager.text_to_bytes(text)
+        
 
         for idx in range(256):
             self.vocab_manager_ptr[].add_token(idx,chr(idx))
