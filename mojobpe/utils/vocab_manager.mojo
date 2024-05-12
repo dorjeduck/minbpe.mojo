@@ -4,7 +4,7 @@ from math import min
 from python import Python
 
 from .merge_manager import MergeManager
-from .builders import StringBuilder,TextBuilder
+from .mostring import MoString, MoText
 from .string_dict import Dict as StringDict
 from .generic_dict import Dict as GenericDict,Keyable,KeyElement,KeysBuilder
 from .tat import distribute_jobs, print_list_int, IntKey
@@ -88,9 +88,9 @@ struct VocabManager:
         inout self, ids: List[Int], include_special: Bool = False
     ) raises -> String:
        
-        var res = StringBuilder()
+        var res = MoString()
         for i in range(len(ids)):
-            res.add(self.get_token(ids[i], include_special))
+            res+=self.get_token(ids[i], include_special)
         return str(res)
 
     @always_inline("nodebug")
@@ -99,19 +99,19 @@ struct VocabManager:
     ) raises -> String:
         alias MAX_WORK_ITEMS = 10
         var n_jobs = len(ids)
-        if n_jobs < 100:
+        if n_jobs < 1000000:
             return self.get_tokens_simple(ids, include_special)
         else:
             
             var num_work_items = min(MAX_WORK_ITEMS, n_jobs // 100)
             var dj = distribute_jobs(n_jobs, num_work_items)
             
-            var tb = TextBuilder(num_work_items)        
+            var tb = MoText(num_work_items)        
             @parameter
             fn _calc(ip: Int):
                 for i in range(dj[ip], dj[ip + 1]):
                     #tb.add(ip,self.get_token(ids[i], include_special))  
-                    tb.string_builder[ip].add(self.get_token(ids[i], include_special))        
+                    tb.append(ip,self.get_token(ids[i], include_special))      
       
             parallelize[_calc](num_work_items)
 
