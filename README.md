@@ -56,6 +56,13 @@ For now we have included a Mojo port of `train.py` from the original repository,
 mojo train.mojo
 ```
 
+## Changelog
+
+- 2024.05.12
+  - Switch to [MoString](https://github.com/dorjeduck/mostring) for String concatenation
+- 2024.05.04    
+  - Initial repository setup and commit.
+
 ### Remarks
 
 - We achieved a significant performance boost by utilizing [Maxim Zaks'](https://github.com/mzaks) exceptional Mojo library, [CompactDict](https://github.com/mzaks/compact-dict), which provides blazing fast dictionary implementations. We've incorporated a slightly modified version of this library in the `mojobe.utils` folder (`generic_dict` and `string_dict`); all credits go to him.
