@@ -2,11 +2,27 @@
 # This and that #
 #################
 
+from time import now
 from utils import Variant
 
 from .generic_dict import Keyable,KeysBuilder
 
 alias IntOrString = Variant[Int, String]
+
+struct MoBench:
+    var start:Float32
+    fn __init__(inout self,name:String = ""):
+        self.start=now()
+        if len(name):
+            print(name)
+    fn result(self,in_seconds:Bool=True):
+        var elapsed = now()-self.start
+
+        if in_seconds:
+            print("time: " + str(elapsed/1_000_000_000) + " sec")
+        else:
+            print("time: " + str(elapsed) + " nsec")
+
 
 
 @value

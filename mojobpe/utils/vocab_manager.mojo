@@ -181,13 +181,7 @@ struct VocabManager:
     @staticmethod
     @always_inline("nodebug")
     fn text_to_bytes(text: String) -> List[Int]:
-        var _ids = text.as_bytes()
-        var ids = List[Int]()
-
-        # soon Mojo will natively move to uint8
-        for i8 in _ids:
-            if i8[] >= 0:
-                ids.append(int(i8[]))
-            else:
-                ids.append(int(i8[]) + 256)
+        var ids = List[Int](capacity=len(text))
+        for i in range(len(text)):
+            ids.append(ord(text[i]))
         return ids
