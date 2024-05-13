@@ -66,8 +66,6 @@ struct MoList[T:CollectionElement](CollectionElement):
         # list.
         self.list.size = final_size
 
-   
-    
     fn optimize_memory(inout self):
         if self.list.size < self.list.capacity:
             self.list._realloc(self.list.size)
@@ -84,7 +82,9 @@ struct MoList[T:CollectionElement](CollectionElement):
         Args:
             existing: The MoString to copy.
         """
-        self.list = existing.list
+        # Todo: make sure this works
+        self.list.__copyinit__(existing.list) 
+    
     @always_inline
     fn __moveinit__(inout self, owned existing: Self):
         """Move the value of a MoString.
@@ -92,6 +92,7 @@ struct MoList[T:CollectionElement](CollectionElement):
         Args:
             existing: The MoString to move.
         """
-        self.list.__moveinit__(existing.list)
+        # Todo: make sure this works
+        self.list.__moveinit__(existing.list) 
 
 
