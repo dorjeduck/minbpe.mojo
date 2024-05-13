@@ -1,18 +1,18 @@
 from memory.unsafe_pointer import move_pointee
 
-struct MoList[T:CollectionElement](CollectionElement):
-    var list:List[T]
-    fn __init__(inout self,capacity:Int = 1):
 
-        """Construct a MoString from a StringRef object.
+struct MoList[T: CollectionElement](CollectionElement):
+    var list: List[T]
+
+    fn __init__(inout self, capacity: Int = 1):
+        """Construct a MoList.
 
         Args:
             capacity: The requested initial memory capacity.
         """
         self.list = List[T]()
-        if capacity>1 :
+        if capacity > 1:
             self.list._realloc(capacity)
-
 
     @always_inline
     fn extend(inout self, owned other: List[T]):
@@ -27,17 +27,17 @@ struct MoList[T:CollectionElement](CollectionElement):
 
         # realloc instead of reserve
         if self.list.capacity == 0:
-            if len(other)>0:
+            if len(other) > 0:
                 self.list._realloc(len(other))
-        else:   
+        else:
             var cap = self.list.capacity
             var realloc = False
-            while cap < final_size :
+            while cap < final_size:
                 cap *= 2
                 realloc = True
             if realloc:
                 self.list._realloc(cap)
-                
+
         # Defensively mark `other` as logically being empty, as we will be doing
         # consuming moves out of `other`, and so we want to avoid leaving `other`
         # in a partially valid state where some elements have been consumed
@@ -70,9 +70,16 @@ struct MoList[T:CollectionElement](CollectionElement):
         if self.list.size < self.list.capacity:
             self.list._realloc(self.list.size)
 
-    fn info(self,include_string:Bool=True) -> String:
-        var res:String = ""
-        res += "(Size: " + str(self.list.size-1) + '+1'  + ", Capacity: " + str(self.list.capacity) + ")"
+    fn info(self, include_string: Bool = True) -> String:
+        var res: String = ""
+        res += (
+            "(Size: "
+            + str(self.list.size - 1)
+            + "+1"
+            + ", Capacity: "
+            + str(self.list.capacity)
+            + ")"
+        )
         return res
 
     @always_inline
@@ -83,8 +90,8 @@ struct MoList[T:CollectionElement](CollectionElement):
             existing: The MoString to copy.
         """
         # Todo: make sure this works
-        self.list.__copyinit__(existing.list) 
-    
+        self.list.__copyinit__(existing.list)
+
     @always_inline
     fn __moveinit__(inout self, owned existing: Self):
         """Move the value of a MoString.
@@ -93,6 +100,4 @@ struct MoList[T:CollectionElement](CollectionElement):
             existing: The MoString to move.
         """
         # Todo: make sure this works
-        self.list.__moveinit__(existing.list) 
-
-
+        self.list.__moveinit__(existing.list)
