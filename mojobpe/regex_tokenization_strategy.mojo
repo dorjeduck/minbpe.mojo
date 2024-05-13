@@ -109,18 +109,19 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
         # split text into chunks of text by categories defined in regex pattern
         var text_chunks = self.regex.findall(self.compiled_pattern, text)
         
-        var mol = MoList[Int](capacity = len(text_chunks)*4)
+        
+        var ids = List[Int]()
+       
         # all chunks of text are encoded separately, then results are joined
        
-        for i in range(len(text_chunks)):
-            
-            var chunk_ids = VocabManager.text_to_bytes(text_chunks[i])
+        for tc in text_chunks:
+            var chunk_ids = VocabManager.text_to_bytes(tc)
             if len(chunk_ids)>1: 
-                self.merge_manager_ptr[].apply_rules(chunk_ids)      
-            mol.extend(chunk_ids)
-        mol.optimize_memory()
+                self.merge_manager_ptr[].apply_rules(chunk_ids)
+            for ci in chunk_ids:      
+                ids.append(ci[])
         
-        return mol.list
+        return ids
     
     fn encode(self, text:String)raises->List[Int]:
         """
