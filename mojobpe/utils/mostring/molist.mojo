@@ -4,7 +4,7 @@ from memory.unsafe_pointer import move_pointee
 struct MoList[T: CollectionElement](CollectionElement):
     var list: List[T]
 
-    fn __init__(inout self, capacity: Int = 1):
+    fn __init__(inout self, capacity: Int = 0):
         """Construct a MoList.
 
         Args:
