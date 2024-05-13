@@ -41,7 +41,7 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
         for i in range(num_merges):
             var stats = CounterDict()
         
-            var max_pair = MergeManager.update_stats_get_max(stats,ids)
+            var max_pair = self.merge_manager_ptr[].update_stats_get_max(stats,ids)
             
             var idx = 256 + i 
             var merge_rule=MergeRule(max_pair,idx)

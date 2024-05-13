@@ -5,13 +5,14 @@ from mojobpe import Tokenizer,BasicTokenizationStrategy,RegexTokenizationStrateg
 from mojobpe.standards import GPT4_SPLIT_PATTERN,GPT4_SPECIAL_TOKENS
 from mojobpe.utils.tat import print_list_int
 
-alias TEST_ROUNDS = 2
+alias TEST_ROUNDS = 1
+alias VERBOSE = False
 
 fn benchmark(inout tokenizer:Tokenizer,text:String,test_rounds:Int) raises -> List[Float32]:
    
     var s1 = now()
     for i in range(test_rounds):
-        tokenizer.train(text,512,False)
+        tokenizer.train(text,512,VERBOSE)
        
     var e1 = (now() - s1)/test_rounds
     
@@ -65,9 +66,7 @@ fn write_json(r1:List[Float32],r2:List[Float32]) raises:
         f.write("\n}")
         
 
-
 fn main() raises:
-
 
     var text = open("tests/taylorswift.txt", "r").read()
 

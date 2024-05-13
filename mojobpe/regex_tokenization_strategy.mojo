@@ -66,17 +66,17 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
         var ids = List[List[Int]](capacity=num_chunks)
         
         for i in  range(len(text_chunks)):
-            
             ids.append(VocabManager.text_to_bytes(text_chunks[i]))
             
-        
         for idx in range(256):
             self.vocab_manager_ptr[].add_token(idx,chr(idx))
     
+        var unique_id_pairs = List[IDPair]()
         for i in range(num_merges):
         
             var stats = CounterDict()
-            var unique_id_pairs = List[IDPair]()
+            
+            unique_id_pairs.clear()
             
             for chunk_ids in ids:
                 if len(chunk_ids[])>1:
@@ -102,12 +102,8 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
 
             if verbose:
                 MergeManager.print_merge_round(i+1,num_merges,merge_rule,new_vocab,stats.get(max_pair,-1))
-    
-    fn _encode_ordinary(self, text:String)raises->List[Int]:
-        var ids = VocabManager.text_to_bytes(text)
-        self.merge_manager_ptr[].apply_rules(ids)
-        return ids  
 
+    
     fn encode_ordinary(self, text:String) raises->List[Int]:
         """Encoding that ignores any special tokens."""
         
@@ -169,8 +165,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
         # all chunks of text are encoded separately, then results are joined
         
         var ids = List[Int]()
-        for part in special_chunks:
-           
+        for part in special_chunks:      
             var id = self.vocab_manager_ptr[].get_special_token_id(part[])
             if id>=0:
                 # this is a special token, encode it separately as a special case
@@ -214,7 +209,6 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
 
                 
     fn save(self,model_file:String) raises -> None:
-        
         
         with open(model_file, 'w') as f:
             # write the version, pattern and merges, that's all that's needed

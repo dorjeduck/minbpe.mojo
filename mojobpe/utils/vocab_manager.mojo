@@ -96,25 +96,24 @@ struct VocabManager:
     ) raises -> String:
         alias MAX_WORK_ITEMS = 10
         var n_jobs = len(ids)
-        if n_jobs < 100000000:
-            return self.get_tokens_simple(ids, include_special)
-        else:
-            
-            var num_work_items = min(MAX_WORK_ITEMS, n_jobs // 100)
-            var dj = distribute_jobs(n_jobs, num_work_items)
-            
-            var tb = MoText(num_work_items)        
-            @parameter
-            fn _calc(ip: Int):
-                for i in range(dj[ip], dj[ip + 1]):
-                    #tb.add(ip,self.get_token(ids[i], include_special))  
-                    tb.append(ip,self.get_token(ids[i], include_special))      
-      
-            parallelize[_calc](num_work_items)
-
-            _ = dj[0]  # dj lifetime insurance ....
-            
-            return str(tb)
+        #if n_jobs < 100:
+        return self.get_tokens_simple(ids, include_special)
+        #else:
+        #    var num_work_items = min(MAX_WORK_ITEMS, n_jobs // 100)
+        #    var dj = distribute_jobs(n_jobs, num_work_items)
+        #    
+        #    var tb = MoText(num_work_items)        
+        #    @parameter
+        #    fn _calc(ip: Int):
+        #        for i in range(dj[ip], dj[ip + 1]):
+        #            #tb.add(ip,self.get_token(ids[i], include_special))  
+        #            tb.append(ip,self.get_token(ids[i], include_special))      
+        #
+        #    parallelize[_calc](num_work_items)
+        #
+        #    _ = dj[0]  # dj lifetime insurance ....
+        #    
+        #    return str(tb)
 
     fn build_vocab(inout self) raises -> None:  # , special_tokens):
         # Initialize with single-byte tokens.

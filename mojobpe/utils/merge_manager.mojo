@@ -2,8 +2,14 @@ from math import min
 from collections import Set
 
 from .tat import print_list_int, distribute_jobs
-from .generic_dict import Dict as GenericDict, Keyable, KeysBuilder, Set as GenericSet
+from .generic_dict import (
+    Dict as GenericDict,
+    Keyable,
+    KeysBuilder,
+    Set as GenericSet,
+)
 from .generic_dict import CounterDict
+
 
 @value
 struct IDPair(Keyable, KeyElement):
@@ -73,12 +79,14 @@ struct MergeRule(Stringable):
 
 struct MergeManager:
     var merge_rules: List[MergeRule]
-    var merge_rules_dict : GenericDict[Int]
+    var merge_rules_dict: GenericDict[Int]
+    var unique_id_pairs: List[IDPair]
 
     @always_inline("nodebug")
     fn __init__(inout self):
         self.merge_rules = List[MergeRule]()
         self.merge_rules_dict = GenericDict[Int](capacity=64)
+        self.unique_id_pairs = List[IDPair](capacity=64)
 
     @always_inline("nodebug")
     fn clear(inout self):
@@ -88,61 +96,77 @@ struct MergeManager:
     @always_inline("nodebug")
     fn add_rule(inout self, merge_rule: MergeRule) raises:
         self.merge_rules.append(merge_rule)
-        _ = self.merge_rules_dict.put(merge_rule.input_id_pair,merge_rule.merge_id)
+        _ = self.merge_rules_dict.put(
+            merge_rule.input_id_pair, merge_rule.merge_id
+        )
 
     @always_inline("nodebug")
     fn apply_rules(inout self, inout ids: List[Int]) raises -> None:
-        var UPPER_VAL:Int = 100000
+        var UPPER_VAL: Int = 100000
 
         var min_val = UPPER_VAL
         var min_pair = IDPair()
-        var unique_pairs = List[IDPair](capacity=64)
+
         while True:
             var min_val = UPPER_VAL
-            unique_pairs.clear()
-            MergeManager.get_unique_pairs(ids,unique_pairs)  
-            for up in unique_pairs:  
-                
-                var val = self.merge_rules_dict.get(up[],UPPER_VAL)
+            self.unique_id_pairs.clear()
+            MergeManager.get_unique_pairs(ids, self.unique_id_pairs)
+            for up in self.unique_id_pairs:
+                var val = self.merge_rules_dict.get(up[], UPPER_VAL)
                 if val < min_val:
                     min_val = val
                     min_pair = up[]
             if min_val < UPPER_VAL:
-                MergeManager.merge(ids, MergeRule(min_pair,min_val))
+                MergeManager.merge(ids, MergeRule(min_pair, min_val))
             else:
                 break
 
-    @always_inline("nodebug")
-    fn apply_rules_slow(self, inout ids: List[Int]) raises -> None:
+    # @always_inline("nodebug")
+    # fn apply_rules_slow(inout self, inout ids: List[Int]) raises -> None:
+    #
+    #    while True:
+    #        var merged = False
+    #        self.unique_id_pairs.clear()
+    #        MergeManager.get_unique_pairs(ids,self.unique_id_pairs)
+    #        for rule in self.merge_rules:
+    #            var rule_value = rule[]
+    #            for up in self.unique_id_pairs:
+    #                if rule_value.input_id_pair == up[]:
+    #                    MergeManager.merge(ids, rule_value)
+    #                    merged = True
+    #                    break
+    #            if merged:
+    #                break
+    #        if not merged:
+    #            break
 
-        var unique_pairs = List[IDPair](capacity=64)
-       
-        while True:
-            var merged = False
-            
-            unique_pairs.clear()
-            MergeManager.get_unique_pairs(ids,unique_pairs)  
-            for rule in self.merge_rules:
-                var rule_value = rule[]
-                for up in unique_pairs:
-                    if rule_value.input_id_pair == up[]:
-                        MergeManager.merge(ids, rule_value)
-                        merged = True
-                        break
-                if merged:
-                    break
-            if not merged:
-                break
+    @always_inline("nodebug")
+    fn update_stats_get_max(
+        inout self, inout stats: CounterDict, ids: List[Int]
+    ) raises -> IDPair:
+        self.unique_id_pairs.clear()
+        MergeManager.update_stats_and_keys(stats, self.unique_id_pairs, ids)
+
+        var max_pair = self.unique_id_pairs[0]
+        var max_val = stats.get(max_pair, -1)
+
+        for j in range(1, len(self.unique_id_pairs)):
+            var val = stats.get(self.unique_id_pairs[j], -1)
+            if val > max_val:
+                max_val = val
+                max_pair = self.unique_id_pairs[j]
+        return max_pair
 
     @staticmethod
-    fn get_unique_pairs(ids: List[Int],inout unique_pairs:List[IDPair]) raises:
+    fn get_unique_pairs(
+        ids: List[Int], inout unique_pairs: List[IDPair]
+    ) raises:
         var tmp = GenericSet()
 
         for i in range(0, len(ids) - 1):
             var p = IDPair(ids[i], ids[i + 1])
             if tmp.put(p):
                 unique_pairs.append(p)
-
 
     @staticmethod
     @always_inline("nodebug")
@@ -154,25 +178,6 @@ struct MergeManager:
             if stats.increase(p):
                 keys.append(p)
 
-    @staticmethod
-    @always_inline("nodebug")
-    fn update_stats_get_max(
-        inout stats: CounterDict, ids: List[Int]
-    ) raises -> IDPair:
-        var unique_id_pairs = List[IDPair]()
-        MergeManager.update_stats_and_keys(stats, unique_id_pairs, ids)
-
-        var max_pair = unique_id_pairs[0]
-        var max_val = stats.get(max_pair, -1)
-
-        for j in range(1, len(unique_id_pairs)):
-            var val = stats.get(unique_id_pairs[j], -1)
-            if val > max_val:
-                max_val = val
-                max_pair = unique_id_pairs[j]
-        return max_pair
-
-   
     @staticmethod
     @always_inline("nodebug")
     fn merge(inout ids: List[Int], merge_rule: MergeRule) -> None:
