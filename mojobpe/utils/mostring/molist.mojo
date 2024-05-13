@@ -11,7 +11,7 @@ struct MoList[T: CollectionElement](CollectionElement):
             capacity: The requested initial memory capacity.
         """
         self.list = List[T]()
-        if capacity > 1:
+        if capacity > 0:
             self.list._realloc(capacity)
 
     @always_inline
