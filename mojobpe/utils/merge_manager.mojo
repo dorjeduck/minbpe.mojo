@@ -78,7 +78,7 @@ struct MergeManager:
     @always_inline("nodebug")
     fn __init__(inout self):
         self.merge_rules = List[MergeRule]()
-        self.merge_rules_dict = GenericDict[Int]()
+        self.merge_rules_dict = GenericDict[Int](capacity=64)
 
     @always_inline("nodebug")
     fn clear(inout self):
@@ -93,12 +93,14 @@ struct MergeManager:
     @always_inline("nodebug")
     fn apply_rules(inout self, inout ids: List[Int]) raises -> None:
         var UPPER_VAL:Int = 100000
-       
+
         var min_val = UPPER_VAL
         var min_pair = IDPair()
+        var unique_pairs = List[IDPair](capacity=64)
         while True:
             var min_val = UPPER_VAL
-            var unique_pairs = MergeManager.get_unique_pairs(ids)  
+            unique_pairs.clear()
+            MergeManager.get_unique_pairs(ids,unique_pairs)  
             for up in unique_pairs:  
                 
                 var val = self.merge_rules_dict.get(up[],UPPER_VAL)
@@ -112,9 +114,14 @@ struct MergeManager:
 
     @always_inline("nodebug")
     fn apply_rules_slow(self, inout ids: List[Int]) raises -> None:
+
+        var unique_pairs = List[IDPair](capacity=64)
+       
         while True:
             var merged = False
-            var unique_pairs = MergeManager.get_unique_pairs(ids)
+            
+            unique_pairs.clear()
+            MergeManager.get_unique_pairs(ids,unique_pairs)  
             for rule in self.merge_rules:
                 var rule_value = rule[]
                 for up in unique_pairs:
@@ -128,17 +135,14 @@ struct MergeManager:
                 break
 
     @staticmethod
-    fn get_unique_pairs(ids: List[Int]) raises -> List[IDPair]:
+    fn get_unique_pairs(ids: List[Int],inout unique_pairs:List[IDPair]) raises:
         var tmp = GenericSet()
 
-        var unique_pairs = List[IDPair]()
-        
         for i in range(0, len(ids) - 1):
             var p = IDPair(ids[i], ids[i + 1])
             if tmp.put(p):
                 unique_pairs.append(p)
 
-        return unique_pairs
 
     @staticmethod
     @always_inline("nodebug")

@@ -27,7 +27,7 @@ struct MoBench:
 
 @value
 struct IntKey(Keyable):
-    var key:UInt64
+    var key:Int32
     @always_inline("nodebug")
     fn accept[T: KeysBuilder](self, inout keys_builder: T):
         keys_builder.add(self.key)

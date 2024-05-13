@@ -21,11 +21,14 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
     
     var compiled_pattern:PythonObject
 
+    var tmp_list:List[Int]
+
     fn __init__(inout self) raises:
         
         self.regex = Python.import_module("regex")
         self.pattern = PATTERN
         self.compiled_pattern = self.regex.compile(PATTERN)
+        self.tmp_list = List[Int]()
 
         self.merge_manager_ptr = Pointer[MergeManager]()
         self.vocab_manager_ptr = Pointer[VocabManager]()
@@ -62,8 +65,10 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
        
         var ids = List[List[Int]](capacity=num_chunks)
         
-        for tc in text_chunks:
-            ids.append(VocabManager.text_to_bytes(tc))
+        for i in  range(len(text_chunks)):
+            
+            ids.append(VocabManager.text_to_bytes(text_chunks[i]))
+            
         
         for idx in range(256):
             self.vocab_manager_ptr[].add_token(idx,chr(idx))
@@ -109,13 +114,14 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
         # split text into chunks of text by categories defined in regex pattern
         var text_chunks = self.regex.findall(self.compiled_pattern, text)
         
-        
         var ids = List[Int]()
+        var chunk_ids = List[Int]()
        
         # all chunks of text are encoded separately, then results are joined
        
         for tc in text_chunks:
-            var chunk_ids = VocabManager.text_to_bytes(tc)
+            chunk_ids.clear()
+            VocabManager.text_to_bytes(tc,chunk_ids)
             if len(chunk_ids)>1: 
                 self.merge_manager_ptr[].apply_rules(chunk_ids)
             for ci in chunk_ids:      
@@ -170,8 +176,12 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
                 # this is a special token, encode it separately as a special case
                 ids.append(id)
             else:
+
                 # this is an ordinary sequence, encode it normally
-                ids.extend(self.encode_ordinary(part[]))
+                var enc = self.encode_ordinary(part[])
+                for e in enc:
+                    ids.append(e[])
+
         return ids
 
     fn decode(self, ids:List[Int]) raises -> String:

@@ -35,7 +35,6 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
         var num_merges = vocab_size - 256
         var ids = VocabManager.text_to_bytes(text)
         
-
         for idx in range(256):
             self.vocab_manager_ptr[].add_token(idx,chr(idx))
         
@@ -56,7 +55,7 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
                 MergeManager.print_merge_round(i+1,num_merges,merge_rule,new_vocab,stats.get(max_pair,-1))
                 
 
-    fn encode(self, text:String)raises->List[Int]:
+    fn encode(self, text:String)raises->List[Int]:   
         var ids = VocabManager.text_to_bytes(text)
         self.merge_manager_ptr[].apply_rules(ids)
         return ids       

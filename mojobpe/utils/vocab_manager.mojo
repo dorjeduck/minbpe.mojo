@@ -41,12 +41,12 @@ struct VocabManager:
     var special_token_list: List[TokenData]
 
     fn __init__(inout self) raises:
-        self.vocab = GenericDict[String]()
+        self.vocab = GenericDict[String](capacity=64)
         self.special_tokens = StringDict[String]()
 
         self.special_token_list = List[TokenData]()
 
-        self.inverse_special_tokens = GenericDict[String]()
+        self.inverse_special_tokens = GenericDict[String](capacity=64)
         self.regex = Python.import_module("regex")
         self.build_vocab()
 
@@ -72,10 +72,8 @@ struct VocabManager:
 
     @always_inline("nodebug")
     fn get_token(inout self, idx: Int, include_special: Bool = False)  -> String:
-       
         try:
             var res = self.vocab.get(IntKey(idx), "")
-            
             if include_special and len(res) == 0:
                 res = self.get_special_token(idx)
             return res
@@ -87,11 +85,10 @@ struct VocabManager:
     fn get_tokens_simple(
         inout self, ids: List[Int], include_special: Bool = False
     ) raises -> String:
-       
-        var res = MoString()
+        var res = MoString(capacity=len(ids))
         for i in range(len(ids)):
             res+=self.get_token(ids[i], include_special)
-        return str(res)
+        return res.string
 
     @always_inline("nodebug")
     fn get_tokens(
@@ -99,7 +96,7 @@ struct VocabManager:
     ) raises -> String:
         alias MAX_WORK_ITEMS = 10
         var n_jobs = len(ids)
-        if n_jobs < 1000000:
+        if n_jobs < 100000000:
             return self.get_tokens_simple(ids, include_special)
         else:
             
@@ -185,3 +182,11 @@ struct VocabManager:
         for i in range(len(text)):
             ids.append(ord(text[i]))
         return ids
+
+    @staticmethod
+    @always_inline("nodebug")
+    fn text_to_bytes(text: String,inout ids:List[Int]) :
+        for i in range(len(text)):
+            ids.append(ord(text[i]))
+       
+
