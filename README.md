@@ -1,6 +1,6 @@
 # minbpe.🔥
 
-This project is a port of Andrej Karpathy's [minbpe](https://github.com/karpathy/minbpe) to [Mojo](https://docs.modular.com/mojo), currently in alpha and actively developed. Not all features of `minpe` are available yet, but they will be introduced as the project evolves.
+This project is a port of Andrej Karpathy's [minbpe](https://github.com/karpathy/minbpe) to [Mojo](https://docs.modular.com/mojo), currently in beta. Not all features of `minpe` are available yet, but they will be introduced as the project evolves.
 
 `Minbpe` implements the Byte Pair Encoding (BPE) algorithm, which is commonly used in large language models (LLMs) tokenization. For a comprehensive explanation of this project, visit its GitHub page at [https://github.com/karpathy/minbpe](https://github.com/karpathy/minbpe).
 
@@ -58,6 +58,9 @@ mojo train.mojo
 
 ## Changelog
 
+- 2024.05.14
+  - Move status to Beta
+  - Performance improvements
 - 2024.05.12
   - Switch to [MoString](https://github.com/dorjeduck/mostring) for String concatenation
 - 2024.05.04    
