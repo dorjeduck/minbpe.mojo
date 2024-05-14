@@ -59,7 +59,7 @@ mojo train.mojo
 ## Changelog
 
 - 2024.05.14
-  - Move status to Beta
+  - Status: Beta
   - Performance improvements
 - 2024.05.12
   - Switch to [MoString](https://github.com/dorjeduck/mostring) for String concatenation
