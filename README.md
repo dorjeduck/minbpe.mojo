@@ -4,7 +4,7 @@ This project is a port of Andrej Karpathy's [minbpe](https://github.com/karpathy
 
 `Minbpe` implements the Byte Pair Encoding (BPE) algorithm, which is commonly used in large language models (LLMs) tokenization. For a comprehensive explanation of this project, visit its GitHub page at [https://github.com/karpathy/minbpe](https://github.com/karpathy/minbpe).
 
-Not all features of `minpe` are available yet, but they will be introduced as the project evolves. Currently, the main focus is on enhancing the performance of the core functionality.
+Not all features of `minpe` are available yet, but will be introduced as the project evolves. Currently, the main focus is on enhancing the performance of the core functionality.
 
 
 ## Implementation
