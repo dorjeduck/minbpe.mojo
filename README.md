@@ -58,8 +58,6 @@ mojo train.mojo
 
 ## Changelog
 
-- 2024.05.13
-  - Switch to MoList for RegexTokinizer encoding (5x speedup)
 - 2024.05.12
   - Switch to [MoString](https://github.com/dorjeduck/mostring) for String concatenation
 - 2024.05.04    
