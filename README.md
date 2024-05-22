@@ -17,7 +17,7 @@ Tokenizers in `minbpe.mojo` are implemented by confirming to the `TokenizationSt
 
 - **BasicTokenizationStrategy**: Implements the BasicTokenizer, the simplest implementation of the BPE algorithm that runs directly on text.
 - **RegexTokenizationStrategy**: Implements the RegexTokenizer that further splits the input text by a regex pattern, which is a preprocessing stage that splits up the input text by categories (think: letters, numbers, punctuation) before tokenization. This ensures that no merges will happen across category boundaries. This was introduced in the GPT-2 paper and continues to be in use as of GPT-4. This class also handles special tokens, if any.
-- **GPT4TokenizationStrategy** coming soon
+- **GPT4TokenizationStrategy** to be implemented 
 
 ## Quick Start
 
