@@ -6,11 +6,11 @@ from .utils import IDPair, MergeManager,MergeRule,VocabManager,TokenData
 from .utils.generic_dict import CounterDict
 from .utils.tat import MoBench
 from .standards import GPT2_SPLIT_PATTERN,GPT4_SPLIT_PATTERN
-from .tokenizer import TokenizationStrategy
-from .utils.mostring import MoList
+from .tokenizer import Tokenizer
+from .utils.mostring import MoList,MoString
 
 
-struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECIAL:String="all"](TokenizationStrategy):
+struct RegexTokenizer[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECIAL:String="all"](Tokenizer):
    
     var merge_manager_ptr:Pointer[MergeManager]
     var vocab_manager_ptr:Pointer[VocabManager]
@@ -53,7 +53,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
 
     fn train(inout self,text:String,vocab_size:Int,verbose:Bool=True) raises -> None:
         if verbose:
-            print("Training RegexTokenizationStrategy...")
+            print("Training RegexTokenizer...")
 
         debug_assert(vocab_size >= 256,"vocab size too small (<256)")
 
@@ -72,9 +72,10 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
             self.vocab_manager_ptr[].add_token(idx,chr(idx))
     
         var unique_id_pairs = List[IDPair]()
+        var stats = CounterDict()
         for i in range(num_merges):
         
-            var stats = CounterDict()
+            stats.clear()
             
             unique_id_pairs.clear()
             
@@ -179,8 +180,8 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
 
         return ids
 
-    fn decode(self, ids:List[Int]) raises -> String:
-        return self.vocab_manager_ptr[].get_tokens(ids,True)
+    fn decode(self, ids:List[Int]) raises -> MoString:
+        return self.vocab_manager_ptr[].get_tokens_simple(ids,True)
 
     fn load(inout self, model_file:String) raises -> None:
         """Inverse of save() but only for the model file."""      
@@ -212,7 +213,7 @@ struct RegexTokenizationStrategy[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECI
         
         with open(model_file, 'w') as f:
             # write the version, pattern and merges, that's all that's needed
-            f.write("minbpe v1\n")
+            f.write(String("minbpe v1\n"))
 
             f.write(PATTERN + "\n")
             

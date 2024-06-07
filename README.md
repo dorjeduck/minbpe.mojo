@@ -13,15 +13,15 @@ Due to differences in language capabilities, the architecture of this port has b
 
 ## Available Tokenizer
 
-Tokenizers in `minbpe.mojo` are implemented by confirming to the `TokenizationStrategy` trait, which defines the required methods around tokenization processes.
+Tokenizers in `minbpe.mojo` are implemented by confirming to the `Tokenizer` trait, which defines the required methods around tokenization processes.
 
-- **BasicTokenizationStrategy**: Implements the BasicTokenizer, the simplest implementation of the BPE algorithm that runs directly on text.
-- **RegexTokenizationStrategy**: Implements the RegexTokenizer that further splits the input text by a regex pattern, which is a preprocessing stage that splits up the input text by categories (think: letters, numbers, punctuation) before tokenization. This ensures that no merges will happen across category boundaries. This was introduced in the GPT-2 paper and continues to be in use as of GPT-4. This class also handles special tokens, if any.
-- **GPT4TokenizationStrategy** to be implemented 
+- **BasicTokenizer**: Implements the BasicTokenizer, the simplest implementation of the BPE algorithm that runs directly on text.
+- **RegexTokenizer**: Implements the RegexTokenizer that further splits the input text by a regex pattern, which is a preprocessing stage that splits up the input text by categories (think: letters, numbers, punctuation) before tokenization. This ensures that no merges will happen across category boundaries. This was introduced in the GPT-2 paper and continues to be in use as of GPT-4. This class also handles special tokens, if any.
+- **GPT4Tokenizer** to be implemented 
 
 ## Quick Start
 
-- First make sure you have [Mojo 24.3](https://docs.modular.com/mojo/manual/get-started/) installed.  
+- First make sure you have [Mojo 24.4](https://docs.modular.com/mojo/manual/get-started/) installed.  
 - In addtion you need to install the Python library `regex`. We rely on `regex` because Mojo currently lacks a powerful native regular expression library. Mojo's ability to utilize Python libraries allows us to enhance functionality in this way. For information on this powerful language feature, see the [Python Integration](https://docs.modular.com/mojo/manual/python/) section in the official Mojo documentation.
 
  ```bash
@@ -31,13 +31,13 @@ Tokenizers in `minbpe.mojo` are implemented by confirming to the `TokenizationSt
 - The [quick start](https://github.com/karpathy/minbpe?tab=readme-ov-file#quick-start) example from `minbpe` can be implement with `minbpe.mojo` as follows:
 
  ```python
-from mojobpe import Tokenizer,BasicTokenizationStrategy
+from mojobpe import Tokenizer,BasicTokenizer
 from mojobpe.utils.tat import print_list_int
 
 fn main() raises:
     var text = "aaabdaaabac"
 
-    var tokenizer = Tokenizer[BasicTokenizationStrategy]()
+    var tokenizer = Tokenizer[BasicTokenizer]()
     tokenizer.train(text, 256 + 3) # 256 are the byte tokens, then do 3 merges
     print_list_int(tokenizer.encode(text))
     # [258, 100, 258, 97, 99]
@@ -61,6 +61,8 @@ mojo train.mojo
 
 ## Changelog
 
+- 2024.06.07
+  - update to Mojo 24.4
 - 2024.05.14
   - Status: Beta
   - Performance improvements

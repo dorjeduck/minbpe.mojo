@@ -1,10 +1,11 @@
 from .utils import IDPair, MergeManager,MergeRule,VocabManager
 from .utils.generic_dict import CounterDict
 from .utils.tat import IntKey,MoBench
+from .utils.mostring import MoString
 
-from .tokenizer import TokenizationStrategy
+from .tokenizer import Tokenizer
 
-struct BasicTokenizationStrategy(TokenizationStrategy):
+struct BasicTokenizer(Tokenizer):
    
     var merge_manager_ptr:Pointer[MergeManager]
     var vocab_manager_ptr:Pointer[VocabManager]
@@ -12,7 +13,6 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
     fn __init__(inout self) raises:
         self.merge_manager_ptr = Pointer[MergeManager]()
         self.vocab_manager_ptr = Pointer[VocabManager]()
-
 
     fn set(inout self,merge_manager_ptr:Pointer[MergeManager],vocab_manager_ptr:Pointer[VocabManager]):
         self.merge_manager_ptr = merge_manager_ptr
@@ -28,7 +28,7 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
     
     fn train(inout self, text:String,vocab_size:Int,verbose:Bool=False) raises ->None:
         if verbose:
-            print("Training BasicTokenizationStrategy...")
+            print("Training BasicTokenizer...")
 
         debug_assert(vocab_size >= 256,"vocab size too small (<256)")
 
@@ -38,8 +38,9 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
         for idx in range(256):
             self.vocab_manager_ptr[].add_token(idx,chr(idx))
         
+        var stats = CounterDict()
         for i in range(num_merges):
-            var stats = CounterDict()
+            stats.clear()
         
             var max_pair = self.merge_manager_ptr[].update_stats_get_max(stats,ids)
             
@@ -60,8 +61,8 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
         self.merge_manager_ptr[].apply_rules(ids)
         return ids       
 
-    fn decode(self, ids:List[Int]) raises -> String:
-        return self.vocab_manager_ptr[].get_tokens(ids)
+    fn decode(self, ids:List[Int]) raises -> MoString:
+        return self.vocab_manager_ptr[].get_tokens_simple(ids)
 
     fn load(inout self, model_file:String) raises -> None:
         """Inverse of save() but only for the model file."""
@@ -86,9 +87,9 @@ struct BasicTokenizationStrategy(TokenizationStrategy):
         
         with open(model_file, 'w') as f:
             # write the version, pattern and merges, that's all that's needed
-            f.write("minbpe v1\n")
-            f.write("\n") # no special pattern  
-            f.write("0\n") # no special token
+            f.write(String("minbpe v1\n"))
+            f.write(String("\n")) # no special pattern  
+            f.write(String("0\n")) # no special token
             
             for mr in self.merge_manager_ptr[].merge_rules:
                 f.write(mr[].input_id_pair.get_model_string() + "\n")

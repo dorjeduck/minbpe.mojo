@@ -11,7 +11,7 @@ struct KeyRef(Stringable):
     var size: Int
 
     fn __str__(self) -> String:
-        var result = str("(") + str(self.size) + (")")
+        var result = String("(") + String(self.size) + (")")
         for i in range(self.size):
             result += lookup[int(self.pointer.load(i) >> 4)]
             result += lookup[int(self.pointer.load(i) & 0xf)]
@@ -85,7 +85,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
             self.keys.free()
             self.keys = keys
         
-        self.keys.store(prev_end + old_key_size, bitcast[DType.uint8, size * T.sizeof()](value))
+        self.keys.store(int(prev_end) + old_key_size, bitcast[DType.uint8, size * T.sizeof()](value))
 
     @always_inline
     fn add_buffer[T: DType](inout self, pointer: DTypePointer[T], size: Int):
@@ -139,10 +139,6 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
         var start = 0 if index == 0 else int(self.keys_end[index - 1])
         var length = int(self.keys_end[index]) - start
         return KeyRef(self.keys.offset(start), length)
-
-    @always_inline
-    fn clear(inout self):
-        self.count = 0
 
     @always_inline
     fn __getitem__(self, index: Int) raises -> KeyRef:

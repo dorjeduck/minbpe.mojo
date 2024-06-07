@@ -1,10 +1,10 @@
-from bit import pop_count, bit_width
+from bit import bit_length, ctpop
 from memory import memset_zero, memcpy
 from .key_eq import eq
 from .keys_container import KeysContainer, KeyRef, Keyable
 from .ahasher import ahash
 from .single_key_builder import SingleKeyBuilder
- 
+
 struct Set[
     hash: fn(KeyRef) -> UInt64 = ahash,
     KeyCountType: DType = DType.uint32,
@@ -14,13 +14,13 @@ struct Set[
 ](Sized):
     var keys: KeysContainer[KeyOffsetType]
     var key_hashes: DTypePointer[KeyCountType]
-    var slot_to_index: DTypePointer[KeyCountType]
+    var key_map: DTypePointer[KeyCountType]
     var deleted_mask: DTypePointer[DType.uint8]
     var count: Int
     var capacity: Int
     var key_builder: SingleKeyBuilder
 
-    fn __init__(inout self, capacity: Int = 16):
+    fn __init__(inout self, capacity: Int = 64):
         constrained[
             KeyCountType == DType.uint8 or 
             KeyCountType == DType.uint16 or 
@@ -33,8 +33,8 @@ struct Set[
             self.capacity = 8
         else:
             var icapacity = Int64(capacity)
-            self.capacity = capacity if pop_count(icapacity) == 1 else
-                            1 << int(bit_width(icapacity))
+            self.capacity = capacity if ctpop(icapacity) == 1 else
+                            1 << int(bit_length(icapacity))
         self.keys = KeysContainer[KeyOffsetType](capacity)
         self.key_builder = SingleKeyBuilder()
         @parameter
@@ -42,9 +42,8 @@ struct Set[
             self.key_hashes = DTypePointer[KeyCountType].alloc(self.capacity)
         else:
             self.key_hashes = DTypePointer[KeyCountType].alloc(0)
-       
-        self.slot_to_index = DTypePointer[KeyCountType].alloc(self.capacity)
-        memset_zero(self.slot_to_index, self.capacity)
+        self.key_map = DTypePointer[KeyCountType].alloc(self.capacity)
+        memset_zero(self.key_map, self.capacity)
         @parameter
         if destructive:
             self.deleted_mask = DTypePointer[DType.uint8].alloc(self.capacity >> 3)
@@ -63,9 +62,8 @@ struct Set[
             memcpy(self.key_hashes, existing.key_hashes, self.capacity)
         else:
             self.key_hashes = DTypePointer[KeyCountType].alloc(0)
-       
-        self.slot_to_index = DTypePointer[KeyCountType].alloc(self.capacity)
-        memcpy(self.slot_to_index, existing.slot_to_index, self.capacity)
+        self.key_map = DTypePointer[KeyCountType].alloc(self.capacity)
+        memcpy(self.key_map, existing.key_map, self.capacity)
         @parameter
         if destructive:
             self.deleted_mask = DTypePointer[DType.uint8].alloc(self.capacity >> 3)
@@ -79,12 +77,11 @@ struct Set[
         self.keys = existing.keys^
         self.key_builder = existing.key_builder^
         self.key_hashes = existing.key_hashes
-       
-        self.slot_to_index = existing.slot_to_index
+        self.key_map = existing.key_map
         self.deleted_mask = existing.deleted_mask
 
     fn __del__(owned self):
-        self.slot_to_index.free()
+        self.key_map.free()
         self.deleted_mask.free()
         self.key_hashes.free()
 
@@ -102,7 +99,6 @@ struct Set[
             return False
 
     fn put[T: Keyable](inout self, key: T) raises -> Bool:
-        """Return True when value is inserted and not updated."""
         if self.count / self.capacity >= 0.87:
             self._rehash()
         key.accept(self.keys)
@@ -111,45 +107,41 @@ struct Set[
 
         var key_hash = hash(key_ref).cast[KeyCountType]()
         var modulo_mask = self.capacity - 1
-        var slot = int(key_hash & modulo_mask)
+        var key_map_index = int(key_hash & modulo_mask)
         while True:
-            var key_index = int(self.slot_to_index.load(slot))
+            var key_index = int(self.key_map.load(key_map_index))
             if key_index == 0:
                 @parameter
                 if caching_hashes:
-                    self.key_hashes.store(slot, key_hash)
+                    self.key_hashes.store(key_map_index, key_hash)
                 self.count += 1
-                self.slot_to_index.store(slot, SIMD[KeyCountType, 1](self.keys.count))
+                self.key_map.store(key_map_index, SIMD[KeyCountType, 1](self.keys.count))
                 return True
             @parameter
             if caching_hashes:
-                var other_key_hash = self.key_hashes[slot]
+                var other_key_hash = self.key_hashes[key_map_index]
                 if other_key_hash == key_hash:
                     var other_key = self.keys[key_index - 1]
                     if eq(other_key, key_ref):
-                       
                         self.keys.drop_last()
                         @parameter
                         if destructive:
                             if self._is_deleted(key_index - 1):
                                 self.count += 1
                                 self._not_deleted(key_index - 1)
-                                return True
                         return False
             else:
                 var other_key = self.keys[key_index - 1]
                 if eq(other_key, key_ref):
-                    
                     self.keys.drop_last()
                     @parameter
                     if destructive:
                         if self._is_deleted(key_index - 1):
                             self.count += 1
                             self._not_deleted(key_index - 1)
-                            return True
                     return False
             
-            slot = (slot + 1) & modulo_mask
+            key_map_index = (key_map_index + 1) & modulo_mask
 
     @always_inline
     fn _is_deleted(self, index: Int) -> Bool:
@@ -175,12 +167,12 @@ struct Set[
 
     @always_inline
     fn _rehash(inout self) raises:
-        var old_slot_to_index = self.slot_to_index
+        var old_key_map = self.key_map
         var old_capacity = self.capacity
-        self.capacity <<= 1
+        self.capacity <<= 8
         var mask_capacity = self.capacity >> 3
-        self.slot_to_index = DTypePointer[KeyCountType].alloc(self.capacity)
-        memset_zero(self.slot_to_index, self.capacity)
+        self.key_map = DTypePointer[KeyCountType].alloc(self.capacity)
+        memset_zero(self.key_map, self.capacity)
         
         var key_hashes = self.key_hashes
         @parameter
@@ -197,35 +189,50 @@ struct Set[
 
         var modulo_mask = self.capacity - 1
         for i in range(old_capacity):
-            if old_slot_to_index[i] == 0:
+            if old_key_map[i] == 0:
                 continue
             var key_hash = SIMD[KeyCountType, 1](0)
             @parameter
             if caching_hashes:
                 key_hash = self.key_hashes[i]
             else:
-                key_hash = hash(self.keys[int(old_slot_to_index[i] - 1)]).cast[KeyCountType]()
+                key_hash = hash(self.keys[int(old_key_map[i] - 1)]).cast[KeyCountType]()
 
-            var slot = int(key_hash & modulo_mask)
+            var key_map_index = int(key_hash & modulo_mask)
 
-            while True:
-                var key_index = int(self.slot_to_index.load(slot))
+            var searching = True
+            while searching:
+                var key_index = int(self.key_map.load(key_map_index))
+
                 if key_index == 0:
-                    self.slot_to_index.store(slot, old_slot_to_index[i])
-                    break
+                    self.key_map.store(key_map_index, old_key_map[i])
+                    searching = False
                 else:
-                    slot = (slot + 1) & modulo_mask
+                    key_map_index = (key_map_index + 1) & modulo_mask
             @parameter
             if caching_hashes:
-                key_hashes[slot] = key_hash  
+                key_hashes[key_map_index] = key_hash  
         
         @parameter
         if caching_hashes:
             self.key_hashes.free()
             self.key_hashes = key_hashes
-        old_slot_to_index.free()
+        old_key_map.free()
 
-   
+    @always_inline
+    fn contains[T: Keyable](inout self, key: T) raises -> Bool:
+        self.key_builder.reset()
+        key.accept(self.key_builder)
+        var key_ref = self.key_builder.get_key()
+        var key_index = self._find_key_index(key_ref)
+        if key_index == 0:
+            return False
+        @parameter
+        if destructive: 
+            if self._is_deleted(key_index - 1):
+                return False
+        return True   
+
     fn delete[T: Keyable](inout self, key: T) raises:
         @parameter
         if not destructive:
@@ -241,25 +248,17 @@ struct Set[
             self.count -= 1
         self._deleted(key_index - 1)
 
-    fn clear(inout self):
-        self.keys.clear()
-        memset_zero(self.slot_to_index, self.capacity)
-        @parameter
-        if destructive:
-            memset_zero(self.deleted_mask, self.capacity >> 3)
-        self.count = 0
-
     fn _find_key_index(self, key_ref: KeyRef) raises -> Int:
         var key_hash = hash(key_ref).cast[KeyCountType]()
         var modulo_mask = self.capacity - 1
-        var slot = int(key_hash & modulo_mask)
+        var key_map_index = int(key_hash & modulo_mask)
         while True:
-            var key_index = int(self.slot_to_index.load(slot))
+            var key_index = int(self.key_map.load(key_map_index))
             if key_index == 0:
                 return key_index
             @parameter
             if caching_hashes:
-                var other_key_hash = self.key_hashes[slot]
+                var other_key_hash = self.key_hashes[key_map_index]
                 if key_hash == other_key_hash:
                     var other_key = self.keys[key_index - 1]
                     if eq(other_key, key_ref):
@@ -268,7 +267,7 @@ struct Set[
                 var other_key = self.keys[key_index - 1]
                 if eq(other_key, key_ref):
                     return key_index
-            slot = (slot + 1) & modulo_mask
+            key_map_index = (key_map_index + 1) & modulo_mask
 
 
     fn debug(self) raises:
@@ -276,7 +275,7 @@ struct Set[
         print("KeyMap:")
         for i in range(self.capacity):
             var end = ", " if i < self.capacity - 1 else "\n"
-            print(self.slot_to_index.load(i), end=end)
+            print(self.key_map.load(i), end=end)
         print("Keys:")
         self.keys.print_keys()
         @parameter
@@ -284,7 +283,7 @@ struct Set[
             print("KeyHashes:")
             for i in range(self.capacity):
                 var end = ", " if i < self.capacity - 1 else "\n"
-                if self.slot_to_index.load(i) > 0:
+                if self.key_map.load(i) > 0:
                     print(self.key_hashes.load(i), end=end)
                 else:
                     print(0, end=end)

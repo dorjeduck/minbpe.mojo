@@ -1,4 +1,3 @@
-from math import min
 from collections import Set
 
 from .tat import print_list_int, distribute_jobs
@@ -104,13 +103,14 @@ struct MergeManager:
     fn apply_rules(inout self, inout ids: List[Int]) raises -> None:
         var UPPER_VAL: Int = 100000
 
-        var min_val = UPPER_VAL
         var min_pair = IDPair()
 
+        var tmp = GenericSet()
         while True:
             var min_val = UPPER_VAL
             self.unique_id_pairs.clear()
-            MergeManager.get_unique_pairs(ids, self.unique_id_pairs)
+            tmp.clear()
+            MergeManager.get_unique_pairs(ids, self.unique_id_pairs,tmp)
             for up in self.unique_id_pairs:
                 var val = self.merge_rules_dict.get(up[], UPPER_VAL)
                 if val < min_val:
@@ -159,9 +159,9 @@ struct MergeManager:
 
     @staticmethod
     fn get_unique_pairs(
-        ids: List[Int], inout unique_pairs: List[IDPair]
+        ids: List[Int], inout unique_pairs: List[IDPair],inout tmp:GenericSet
     ) raises:
-        var tmp = GenericSet()
+      
 
         for i in range(0, len(ids) - 1):
             var p = IDPair(ids[i], ids[i + 1])
@@ -210,9 +210,9 @@ struct MergeManager:
             "merge "
             + str(round)
             + "/"
-            + total
+            + str(total)
             + ": "
-            + merge_rule
+            + str(merge_rule)
             + " (b'"
             + new_vocab
             + "') had "

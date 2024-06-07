@@ -1,7 +1,7 @@
 
 from time import now
 
-from mojobpe import Tokenizer,BasicTokenizationStrategy,RegexTokenizationStrategy
+from mojobpe import BasicTokenizer,RegexTokenizer
 from mojobpe.standards import GPT4_SPLIT_PATTERN,GPT4_SPECIAL_TOKENS
 from mojobpe.utils.tat import print_list_int
 
@@ -12,11 +12,11 @@ fn main() raises:
     
     var start = now()
    
-    var tokenizer = Tokenizer[BasicTokenizationStrategy]()
+    var tokenizer = BasicTokenizer()
     tokenizer.train(text,512,True)
     tokenizer.save("models/basic")
     
-    var tokenizer2 = Tokenizer[RegexTokenizationStrategy[GPT4_SPLIT_PATTERN]]()
+    var tokenizer2 = RegexTokenizer[GPT4_SPLIT_PATTERN]()
     tokenizer2.register_special_tokens(GPT4_SPECIAL_TOKENS)
     tokenizer2.train(text,512,True)
     tokenizer2.save("models/regex") 

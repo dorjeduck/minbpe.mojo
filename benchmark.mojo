@@ -1,14 +1,15 @@
 
 from time import now
 
-from mojobpe import Tokenizer,BasicTokenizationStrategy,RegexTokenizationStrategy
+from mojobpe import Tokenizer,BasicTokenizer,RegexTokenizer
 from mojobpe.standards import GPT4_SPLIT_PATTERN,GPT4_SPECIAL_TOKENS
 from mojobpe.utils.tat import print_list_int
+from mojobpe.utils.mostring import MoString
 
 alias TEST_ROUNDS = 1
 alias VERBOSE = False
 
-fn benchmark(inout tokenizer:Tokenizer,text:String,test_rounds:Int) raises -> List[Float32]:
+fn benchmark[TK:Tokenizer](inout tokenizer:TK,text:String,test_rounds:Int) raises -> List[Float32]:
    
     var s1 = now()
     for i in range(test_rounds):
@@ -19,11 +20,12 @@ fn benchmark(inout tokenizer:Tokenizer,text:String,test_rounds:Int) raises -> Li
     var s2=now()
     var encoded = List[Int]()
     for i in range(test_rounds):
+        
         encoded = tokenizer.encode(text)
     var e2 = (now() - s2)/test_rounds
    
     var s3=now()
-    var decoded:String = ""
+    var decoded = MoString("")
     for i in range(test_rounds):
         decoded = tokenizer.decode(encoded)
     
@@ -59,24 +61,25 @@ fn json_block(name:String,data:List[Float32]) ->String:
 fn write_json(r1:List[Float32],r2:List[Float32]) raises:
     var ott = (r1[0] + r1[1] + r1[2] + r2[0] + r2[1] + r2[2])/1_000_000_000
     with open("results_mojo.json", 'w') as f:
-        f.write("{\n")
+        f.write(String("{\n"))
         f.write(json_block("basic",r1))
         f.write(json_block("regex",r2))
-        f.write("\t\"overall_total_time\":" + str(ott))
-        f.write("\n}")
+        f.write(String("\t\"overall_total_time\":") + str(ott))
+        f.write(String("\n}"))
         
 
 fn main() raises:
 
     var text = open("tests/taylorswift.txt", "r").read()
 
-    var tokenizer = Tokenizer[BasicTokenizationStrategy]()
-    var tokenizer2 = Tokenizer[RegexTokenizationStrategy[GPT4_SPLIT_PATTERN]]()
+    var tokenizer = BasicTokenizer()
+    var tokenizer2 = RegexTokenizer[GPT4_SPLIT_PATTERN]()
     
     var r1 = benchmark(tokenizer,text,TEST_ROUNDS)
     print_result("Basic Tokenizer",r1)
 
     var r2 = benchmark(tokenizer2,text,TEST_ROUNDS)
+   
     print_result("Regex Tokenizer",r2)
 
     print("\nTotal average time: "+ str((r1[0]+r1[1]+r1[2]+ r2[0]+r2[1]+r2[2]) / 1_000_000_000) + " seconds\n")

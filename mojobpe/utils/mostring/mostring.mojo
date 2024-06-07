@@ -1,5 +1,5 @@
 
-struct MoString(CollectionElement):
+struct MoString[MEM_AHEAD_FACTOR:Int = 2](CollectionElement):
     var string:String
     fn __init__(inout self,string:StringRef="",*,capacity:Int = 1):
 
@@ -19,19 +19,19 @@ struct MoString(CollectionElement):
         var self_len = len(self.string)
         var other_len = len(other)    
         var total_len = self_len + other_len
-        
+ 
         # realloc if needed (instead of resize)
         var cap = self.string._buffer.capacity 
         var realloc = False
         
         while cap < total_len+ 1 :
-            cap *= 2
+            cap *= MEM_AHEAD_FACTOR
             realloc = True
         if realloc:
             self.string._buffer._realloc(cap)
 
         # Copy the data alongside the terminator.
-        memcpy(self.string._as_ptr() + self_len, other._as_ptr(), other_len + 1)
+        memcpy(self.string.unsafe_ptr() + self_len, other.unsafe_ptr(), other_len + 1)
 
         #Adjust the size
         self.string._buffer.size = total_len+1
