@@ -63,7 +63,7 @@ mojo train.mojo
 
 - 2024.06.07
   - Update to Mojo 24.4
-  - Performance improvement thanks to new features of [CompactDict](https://github.com/mzaks/compact-dict)
+  - Performance improvements thanks to new features of [CompactDict](https://github.com/mzaks/compact-dict)
 - 2024.05.14
   - Status: Beta
   - Performance improvements
