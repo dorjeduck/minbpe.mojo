@@ -62,7 +62,8 @@ mojo train.mojo
 ## Changelog
 
 - 2024.06.07
-  - update to Mojo 24.4
+  - Update to Mojo 24.4
+  - Performance improvements: Application speed doubled thanks to new features of [CompactDict](https://github.com/mzaks/compact-dict)
 - 2024.05.14
   - Status: Beta
   - Performance improvements
