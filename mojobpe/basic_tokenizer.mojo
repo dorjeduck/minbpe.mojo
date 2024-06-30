@@ -60,7 +60,7 @@ struct BasicTokenizer(Tokenizer):
         self.merge_manager.apply_rules(ids)
         return ids       
 
-    fn decode(inout self, ids:List[Int]) raises -> MoString:
+    fn decode(inout self, ids:List[Int]) raises -> String:
         return self.vocab_manager.get_tokens_simple(ids)
 
     fn load(inout self, model_file:String) raises -> None:

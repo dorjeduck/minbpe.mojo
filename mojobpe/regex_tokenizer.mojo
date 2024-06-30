@@ -183,7 +183,7 @@ struct RegexTokenizer[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECIAL:String="
 
         return ids
 
-    fn decode(inout self, ids:List[Int]) raises -> MoString:
+    fn decode(inout self, ids:List[Int]) raises -> String:
         return self.vocab_manager.get_tokens_simple(ids,True)
 
     fn load(inout self, model_file:String) raises -> None:

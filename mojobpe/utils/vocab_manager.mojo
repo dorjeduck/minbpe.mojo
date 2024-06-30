@@ -84,21 +84,23 @@ struct VocabManager:
     @always_inline("nodebug")
     fn get_tokens_simple(
         inout self, ids: List[Int], include_special: Bool = False
-    ) raises -> MoString:
+    ) raises -> String:
         var res = MoString(capacity=len(ids)*5)
         for i in range(len(ids)):
             res+=self.get_token(ids[i], include_special)
 
         #res.optimize_memory()
-        return res^ 
+        return str(res^) 
 
     @always_inline("nodebug")
     fn get_tokens(
         inout self, ids: List[Int], include_special: Bool = False
     ) raises -> String:
+        
         alias MAX_WORK_ITEMS = 10
         var n_jobs = len(ids)
-        if n_jobs < 1000:
+        
+        if n_jobs < 100:
             return self.get_tokens_simple(ids, include_special)
         else:
             

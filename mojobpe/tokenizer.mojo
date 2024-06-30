@@ -5,7 +5,7 @@ trait Encoder:
     fn encode(inout self,text:String)raises->List[Int]:
         ...
 trait Decoder: 
-    fn decode(inout self, ids:List[Int]) raises -> MoString:
+    fn decode(inout self, ids:List[Int]) raises -> String:
         ...
 trait Trainable:
      fn train(inout self,text:String,vocab_size:Int,verbose:Bool=False) raises -> None:

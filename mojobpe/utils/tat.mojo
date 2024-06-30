@@ -23,8 +23,6 @@ struct MoBench:
         else:
             print("time: " + str(elapsed) + " nsec")
 
-
-
 @value
 struct IntKey(Keyable):
     var key:Int32

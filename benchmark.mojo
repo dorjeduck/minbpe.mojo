@@ -25,8 +25,8 @@ fn benchmark[TK:Tokenizer](inout tokenizer:TK,text:String,test_rounds:Int) raise
     var e2 = (now() - s2)/test_rounds
    
     var s3=now()
-    var decoded = MoString("")
-    for i in range(test_rounds):
+    var decoded = String("")
+    for _ in range(test_rounds):
         decoded = tokenizer.decode(encoded)
     
     var e3 = (now() - s3)/test_rounds

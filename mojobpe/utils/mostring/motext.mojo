@@ -1,16 +1,16 @@
 from sys import exit 
 from time import now
 
-struct MoText:
-    var mostrings: List[MoString]
+struct MoText[MEM_AHEAD_FACTOR:Int = 2]:
+    var mostrings: List[MoString[MEM_AHEAD_FACTOR]]
     var number_of_mostrings:Int
 
     fn __init__(inout self, number_of_mostrings: Int,mostring_capacity:Int=64):
-        self.mostrings = List[MoString](capacity=number_of_mostrings)
+        self.mostrings = List[MoString[MEM_AHEAD_FACTOR]](capacity=number_of_mostrings)
         self.number_of_mostrings = number_of_mostrings
        
         for i in range(self.number_of_mostrings):
-            self.mostrings.append(MoString(capacity=mostring_capacity))
+            self.mostrings.append(MoString[MEM_AHEAD_FACTOR](capacity=mostring_capacity))
 
     fn append(inout self,idx:Int,str:String):
         self.mostrings[idx]+=str
@@ -28,7 +28,7 @@ struct MoText:
         var res = MoString(capacity = len(self)+1)
         for i in range(self.number_of_mostrings):
             res+=self.mostrings[i].string
-        return res
+        return str(res)
 
 
 
