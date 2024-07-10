@@ -1,6 +1,5 @@
 from algorithm import parallelize
 from collections.vector import InlinedFixedVector
-from math import min
 from python import Python
 
 from .merge_manager import MergeManager
@@ -41,20 +40,21 @@ struct VocabManager:
     var special_token_list: List[TokenData]
 
     fn __init__(inout self) raises:
-        self.vocab = GenericDict[String]()
+        self.vocab = GenericDict[String](capacity=64)
         self.special_tokens = StringDict[String]()
 
         self.special_token_list = List[TokenData]()
 
-        self.inverse_special_tokens = GenericDict[String]()
+        self.inverse_special_tokens = GenericDict[String](capacity=64)
         self.regex = Python.import_module("regex")
         self.build_vocab()
 
     fn clear(inout self):
-        self.vocab = GenericDict[String]()
-        self.special_tokens = StringDict[String]()
-        self.inverse_special_tokens = GenericDict[String]()
-        self.special_token_list = List[TokenData]()
+    
+        self.vocab.clear()
+        self.special_tokens.clear()
+        self.inverse_special_tokens.clear()
+        self.special_token_list.clear()
 
     
     fn add_token(inout self,mr:MergeRule) raises -> String:
@@ -71,35 +71,36 @@ struct VocabManager:
         _ = self.vocab.put(IntKey(idx), token)
 
     @always_inline("nodebug")
-    fn get_token(inout self, idx: Int, include_special: Bool = False)  -> String:
-       
-        try:
-            var res = self.vocab.get(IntKey(idx), "")
-            
-            if include_special and len(res) == 0:
-                res = self.get_special_token(idx)
-            return res
-        except:
-            print("problem getting token for id",idx)
-            return ""
+    fn get_token(inout self, idx: Int, include_special: Bool = False)  raises -> String:
+        #try:
+        var res = self.vocab.get(IntKey(idx), "")
+        if include_special and len(res) == 0:
+            res = self.get_special_token(idx)
+        return res
+        #except:
+        #    print("problem getting token for id",idx)
+        #    return ""
 
     @always_inline("nodebug")
     fn get_tokens_simple(
         inout self, ids: List[Int], include_special: Bool = False
     ) raises -> String:
-       
-        var res = MoString()
+        var res = MoString(capacity=len(ids)*5)
         for i in range(len(ids)):
             res+=self.get_token(ids[i], include_special)
-        return str(res)
+
+        #res.optimize_memory()
+        return str(res^) 
 
     @always_inline("nodebug")
     fn get_tokens(
         inout self, ids: List[Int], include_special: Bool = False
     ) raises -> String:
+        
         alias MAX_WORK_ITEMS = 10
         var n_jobs = len(ids)
-        if n_jobs < 1000000:
+        
+        if n_jobs < 100:
             return self.get_tokens_simple(ids, include_special)
         else:
             
@@ -110,11 +111,13 @@ struct VocabManager:
             @parameter
             fn _calc(ip: Int):
                 for i in range(dj[ip], dj[ip + 1]):
-                    #tb.add(ip,self.get_token(ids[i], include_special))  
-                    tb.append(ip,self.get_token(ids[i], include_special))      
-      
+                    try:
+                        tb.append(ip,self.get_token(ids[i], include_special))
+                    except:
+                        pass      
+        
             parallelize[_calc](num_work_items)
-
+        
             _ = dj[0]  # dj lifetime insurance ....
             
             return str(tb)
@@ -132,10 +135,10 @@ struct VocabManager:
         )
 
         for st in special_tokens:
-            self.register_special_token(TokenData(st[1], atol(st[2])))
+            self.register_special_token(TokenData(str(st[1]), atol(str(st[2]))))
 
     fn register_special_token(inout self, st: TokenData) raises:
-        self.special_tokens.put(st.token, st.id)
+        self.special_tokens.put(st.token, str(st.id))
         _ = self.inverse_special_tokens.put(IntKey(st.id), st.token)
         self.special_token_list.append(st)
 
@@ -147,10 +150,10 @@ struct VocabManager:
 
         for i in range(len(self.special_token_list) - 1):
             special_pattern += (
-                self.regex.escape(self.special_token_list[i].token) + "|"
+                str(self.regex.escape(self.special_token_list[i].token)) + "|"
             )
         special_pattern += (
-            self.regex.escape(self.special_token_list[-1].token) + ")"
+            str(self.regex.escape(self.special_token_list[-1].token)) + ")"
         )
 
         var compiled_pattern = self.regex.compile(special_pattern)
@@ -160,12 +163,12 @@ struct VocabManager:
         var res = List[String]()
 
         for sc in special_chunks:
-            res.append(sc)
+            res.append(str(sc))
         return res
 
     @always_inline("nodebug")
     fn get_special_token_id(self, text: String) raises -> Int:
-        return atol(self.special_tokens.get(text, -1))
+        return atol(self.special_tokens.get(text, "-1"))
 
     @always_inline("nodebug")
     fn get_special_token(inout self, id: Int) raises -> String:
@@ -181,13 +184,15 @@ struct VocabManager:
     @staticmethod
     @always_inline("nodebug")
     fn text_to_bytes(text: String) -> List[Int]:
-        var _ids = text.as_bytes()
-        var ids = List[Int]()
-
-        # soon Mojo will natively move to uint8
-        for i8 in _ids:
-            if i8[] >= 0:
-                ids.append(int(i8[]))
-            else:
-                ids.append(int(i8[]) + 256)
+        var ids = List[Int](capacity=len(text))
+        for i in range(len(text)):
+            ids.append(ord(text[i]))
         return ids
+
+    @staticmethod
+    @always_inline("nodebug")
+    fn text_to_bytes(text: String,inout ids:List[Int]) :
+        for i in range(len(text)):
+            ids.append(ord(text[i]))
+       
+

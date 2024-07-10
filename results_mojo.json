@@ -1,0 +1,15 @@
+{
+	"basic": {
+		"training_time": 0.63164496421813965,
+		"encoding_time": 0.59695601463317871,
+		"decoding_time": 0.011917999945580959,
+		"total_time": 1.2405190467834473
+	},
+	"regex": {
+		"training_time": 0.77889901399612427,
+		"encoding_time": 0.2165529876947403,
+		"decoding_time": 0.012443000450730324,
+		"total_time": 1.0078949928283691
+	},
+	"overall_total_time":2.2484140396118164
+}
