@@ -4,7 +4,6 @@ from time import now
 
 from .utils import IDPair, MergeManager,MergeRule,VocabManager,TokenData
 from .utils.generic_dict import CounterDict
-from .utils.tat import MoBench
 from .standards import GPT2_SPLIT_PATTERN,GPT4_SPLIT_PATTERN
 from .tokenizer import Tokenizer
 from .utils.mostring import MoList,MoString
@@ -230,4 +229,3 @@ struct RegexTokenizer[PATTERN:String=GPT4_SPLIT_PATTERN,ALLOWED_SPECIAL:String="
             for mr in self.merge_manager.merge_rules:
                 f.write(mr[].input_id_pair.get_model_string() + "\n")
                    
-    

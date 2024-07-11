@@ -1,6 +1,6 @@
 from .utils import IDPair, MergeManager,MergeRule,VocabManager
 from .utils.generic_dict import CounterDict
-from .utils.tat import IntKey,MoBench
+from .utils.tat import IntKey
 from .utils.mostring import MoString
 
 from .tokenizer import Tokenizer
