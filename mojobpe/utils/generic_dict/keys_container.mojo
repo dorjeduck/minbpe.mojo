@@ -1,5 +1,5 @@
 from collections.vector import InlinedFixedVector
-from memory import bitcast, memcpy
+from memory import bitcast, memcpy, UnsafePointer
 
 trait Keyable:
     fn accept[T: KeysBuilder](self, inout keys_builder: T): ...

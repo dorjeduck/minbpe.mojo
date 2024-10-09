@@ -1,5 +1,5 @@
 from bit import pop_count, bit_width
-from memory import memset_zero, memcpy
+from memory import memset_zero, memcpy, UnsafePointer
 from collections import List, Optional
 from .string_eq import eq
 from .keys_container import KeysContainer

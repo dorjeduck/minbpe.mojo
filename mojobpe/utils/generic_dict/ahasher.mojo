@@ -1,6 +1,8 @@
 # This code is based on https://github.com/tkaitchuck/aHash
 
 from bit import rotate_bits_left, byte_swap
+from memory import UnsafePointer
+
 from .keys_container import KeyRef
 
 alias U256 = SIMD[DType.uint64, 4]

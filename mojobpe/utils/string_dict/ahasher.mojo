@@ -1,6 +1,7 @@
 # This code is based on https://github.com/tkaitchuck/aHash
 
 from bit import rotate_bits_left, byte_swap
+from memory import UnsafePointer
 
 alias U256 = SIMD[DType.uint64, 4]
 alias U128 = SIMD[DType.uint64, 2]

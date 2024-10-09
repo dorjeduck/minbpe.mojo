@@ -1,5 +1,5 @@
 from .keys_container import KeysBuilder, KeyRef
-from memory import bitcast, memcpy
+from memory import bitcast, memcpy, UnsafePointer
 
 struct SingleKeyBuilder(KeysBuilder):
     var key: UnsafePointer[UInt8]

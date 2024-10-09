@@ -1,3 +1,6 @@
+from memory import UnsafePointer
+from utils import StringRef
+
 @always_inline
 fn eq(a: StringRef, b: String) -> Bool:
     var l = len(a)

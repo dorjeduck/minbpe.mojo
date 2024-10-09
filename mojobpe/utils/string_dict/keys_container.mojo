@@ -1,5 +1,6 @@
 from collections.vector import InlinedFixedVector
-from memory import memcpy
+from memory import memcpy, UnsafePointer
+from utils import StringRef
 
 struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
     var keys: UnsafePointer[UInt8]
