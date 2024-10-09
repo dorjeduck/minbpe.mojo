@@ -1,10 +1,11 @@
 from collections import Optional
 from bit import pop_count
+from memory import memcpy, memset_zero
 from tensor import Tensor, TensorSpec
 
 struct SparseArray[T: DType]:
-    var mask: DTypePointer[DType.uint8]
-    var values: DTypePointer[T]
+    var mask: UnsafePointer[UInt8]
+    var values: UnsafePointer[Scalar[T]]
     var mask_size: Int
     var values_count: Int
     var values_capacity: Int
@@ -12,19 +13,19 @@ struct SparseArray[T: DType]:
     fn __init__(inout self, capacity: Int = 8):
         var _capacity = capacity if capacity >= 8 else 8
         self.mask_size = -(-_capacity >> 3)
-        self.mask = DTypePointer[DType.uint8].alloc(self.mask_size)
+        self.mask = UnsafePointer[UInt8].alloc(self.mask_size)
         memset_zero(self.mask, self.mask_size)
         self.values_capacity = 4
         self.values_count = 0
-        self.values = DTypePointer[T].alloc(self.values_capacity)
+        self.values = UnsafePointer[Scalar[T]].alloc(self.values_capacity)
 
     fn __copyinit__(inout self, existing: Self):
         self.mask_size = existing.mask_size
         self.values_count = existing.values_count
         self.values_capacity = existing.values_capacity
-        self.mask = DTypePointer[DType.uint8].alloc(self.mask_size)
+        self.mask = UnsafePointer[UInt8].alloc(self.mask_size)
         memcpy(self.mask, existing.mask, self.mask_size)
-        self.values = DTypePointer[T].alloc(self.values_capacity)
+        self.values = UnsafePointer[Scalar[T]].alloc(self.values_capacity)
         memcpy(self.values, existing.values, self.values_count)
 
     fn __moveinit__(inout self, owned existing: Self):
@@ -53,7 +54,7 @@ struct SparseArray[T: DType]:
         var bit_index = index & 7
         
         if self.mask_size <= offset:
-            var mask = DTypePointer[DType.uint8].alloc(offset + 1)
+            var mask = UnsafePointer[UInt8].alloc(offset + 1)
             memcpy(mask, self.mask, self.mask_size)
             memset_zero(mask.offset(self.mask_size), offset + 1 - self.mask_size)
             self.mask.free()
@@ -71,7 +72,7 @@ struct SparseArray[T: DType]:
 
         if self.values_capacity <= self.values_count + 1:
             var values_capacity = self.values_capacity + (self.values_capacity >> 1)
-            var values = DTypePointer[T].alloc(values_capacity)
+            var values = UnsafePointer[Scalar[T]].alloc(values_capacity)
             memcpy(values, self.values, self.values_count)
             self.values.free()
             self.values = values

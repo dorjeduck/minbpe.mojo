@@ -1,4 +1,5 @@
 from collections.vector import InlinedFixedVector
+from memory import bitcast, memcpy
 
 trait Keyable:
     fn accept[T: KeysBuilder](self, inout keys_builder: T): ...
@@ -7,11 +8,11 @@ alias lookup = String("0123456789abcdef")
 
 @value
 struct KeyRef(Stringable):
-    var pointer: DTypePointer[DType.uint8]
+    var pointer: UnsafePointer[UInt8]
     var size: Int
 
     fn __str__(self) -> String:
-        var result = str("(") + str(self.size) + (")")
+        var result = String("(") + str(self.size) + (")")
         for i in range(self.size):
             result += lookup[int(self.pointer.load(i) >> 4)]
             result += lookup[int(self.pointer.load(i) & 0xf)]
@@ -19,12 +20,12 @@ struct KeyRef(Stringable):
 
 trait KeysBuilder:
     fn add[T: DType, size: Int](inout self, value: SIMD[T, size]): ...
-    fn add_buffer[T: DType](inout self, pointer: DTypePointer[T], size: Int): ...
+    fn add_buffer[T: DType](inout self, pointer: UnsafePointer[Scalar[T]], size: Int): ...
 
 struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
-    var keys: DTypePointer[DType.uint8]
+    var keys: UnsafePointer[UInt8]
     var allocated_bytes: Int
-    var keys_end: DTypePointer[KeyEndType]
+    var keys_end: UnsafePointer[Scalar[KeyEndType]]
     var count: Int
     var capacity: Int
     var key_size: Int
@@ -38,8 +39,8 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
             "KeyEndType needs to be an unsigned integer"
         ]()
         self.allocated_bytes = capacity << 3
-        self.keys = DTypePointer[DType.uint8].alloc(self.allocated_bytes)
-        self.keys_end = DTypePointer[KeyEndType].alloc(capacity)
+        self.keys = UnsafePointer[UInt8].alloc(self.allocated_bytes)
+        self.keys_end = UnsafePointer[Scalar[KeyEndType]].alloc(capacity)
         self.count = 0
         self.capacity = capacity
         self.key_size = 0
@@ -49,9 +50,9 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
         self.count = existing.count
         self.capacity = existing.capacity
         self.key_size = existing.key_size
-        self.keys = DTypePointer[DType.uint8].alloc(self.allocated_bytes)
+        self.keys = UnsafePointer[UInt8].alloc(self.allocated_bytes)
         memcpy(self.keys, existing.keys, self.allocated_bytes)
-        self.keys_end = DTypePointer[KeyEndType].alloc(self.allocated_bytes)
+        self.keys_end = UnsafePointer[Scalar[KeyEndType]].alloc(self.allocated_bytes)
         memcpy(self.keys_end, existing.keys_end, self.capacity)
 
     fn __moveinit__(inout self, owned existing: Self):
@@ -80,7 +81,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
             needs_realocation = True
 
         if needs_realocation:
-            var keys = DTypePointer[DType.uint8].alloc(self.allocated_bytes)
+            var keys = UnsafePointer[UInt8].alloc(self.allocated_bytes)
             memcpy(keys, self.keys, int(prev_end) + old_key_size)
             self.keys.free()
             self.keys = keys
@@ -88,7 +89,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
         self.keys.store(prev_end + old_key_size, bitcast[DType.uint8, size * T.sizeof()](value))
 
     @always_inline
-    fn add_buffer[T: DType](inout self, pointer: DTypePointer[T], size: Int):
+    fn add_buffer[T: DType](inout self, pointer: UnsafePointer[Scalar[T]], size: Int):
         var prev_end = 0 if self.count == 0 else self.keys_end[self.count - 1]
         var key_length = size * T.sizeof()
         var old_key_size = self.key_size
@@ -101,12 +102,12 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
             needs_realocation = True
 
         if needs_realocation:
-            var keys = DTypePointer[DType.uint8].alloc(self.allocated_bytes)
-            memcpy(keys, self.keys, int(prev_end) + old_key_size)
+            var keys = UnsafePointer[UInt8].alloc(self.allocated_bytes)
+            memcpy(keys, self.keys, int(prev_end) + old_key_size) 
             self.keys.free()
             self.keys = keys
         
-        memcpy(self.keys.offset(prev_end + old_key_size), pointer.bitcast[DType.uint8](), key_length)
+        memcpy(self.keys.offset(int(prev_end + old_key_size)), pointer.bitcast[DType.uint8](), key_length)
 
     @always_inline
     fn end_key(inout self):
@@ -114,7 +115,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
         var count = self.count + 1
         if count >= self.capacity:
             var new_capacity = self.capacity + (self.capacity >> 1)
-            var keys_end = DTypePointer[KeyEndType].alloc(self.allocated_bytes)
+            var keys_end = UnsafePointer[Scalar[KeyEndType]].alloc(self.allocated_bytes)
             memcpy(keys_end, self.keys_end, self.capacity)
             self.keys_end.free()
             self.keys_end = keys_end

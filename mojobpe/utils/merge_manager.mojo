@@ -1,4 +1,3 @@
-from math import min
 from collections import Set
 
 from .tat import print_list_int, distribute_jobs
@@ -23,18 +22,18 @@ struct IDPair(Keyable, KeyElement):
 
     @always_inline("nodebug")
     fn __eq__(self, other: Self) -> Bool:
-        return self.data == other.data
+        return self.data[0] == other.data[0] and self.data[1] == other.data[1]
 
     @always_inline("nodebug")
     fn __ne__(self, other: Self) -> Bool:
-        return self.data != other.data
+        return self.data[0] != other.data[0] or self.data[1] != other.data[1]
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
         return "(" + str(self.data[0]) + ", " + str(self.data[1]) + ")"
 
     @always_inline("nodebug")
-    fn __hash__(self) -> Int:
+    fn __hash__(self) -> UInt:
         return hash(self.data[0] + 31 * self.data[1])
 
     @always_inline("nodebug")

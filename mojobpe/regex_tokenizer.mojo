@@ -1,5 +1,5 @@
 from algorithm import parallelize
-from python import Python
+from python import Python, PythonObject
 from time import now
 
 from .utils import IDPair, MergeManager,MergeRule,VocabManager,TokenData

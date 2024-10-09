@@ -9,7 +9,7 @@ from mojobpe.utils.mostring import MoString
 alias TEST_ROUNDS = 1
 alias VERBOSE = False
 
-fn benchmark[TK:Tokenizer](inout tokenizer:TK,text:String,test_rounds:Int) raises -> List[Float32]:
+fn benchmark[TK:Tokenizer](inout tokenizer:TK,text:String,test_rounds:Int) raises -> List[Float64]:
    
     var s1 = now()
     for i in range(test_rounds):
@@ -33,9 +33,9 @@ fn benchmark[TK:Tokenizer](inout tokenizer:TK,text:String,test_rounds:Int) raise
 
     _ = decoded
 
-    return List[Float32](e1,e2,e3)
+    return List[Float64](e1,e2,e3)
 
-fn print_result(name:String,r:List[Float32]):
+fn print_result(name:String,r:List[Float64]):
     
     print("-------------------------------------------------------------")
     print("Benchmark results for",name,"\n")
@@ -45,7 +45,7 @@ fn print_result(name:String,r:List[Float32]):
     print("Sum: " + str((r[0]+r[1]+r[2]) / 1_000_000_000) + " seconds")
     print("-------------------------------------------------------------")
    
-fn json_block(name:String,data:List[Float32]) ->String:
+fn json_block(name:String,data:List[Float64]) ->String:
     var total = (data[0] + data[1] + data[2])/1_000_000_000
     var res:String = ""
     res += "\t\"" + name+ "\": {\n"
@@ -58,7 +58,7 @@ fn json_block(name:String,data:List[Float32]) ->String:
 
 
 
-fn write_json(r1:List[Float32],r2:List[Float32]) raises:
+fn write_json(r1:List[Float64],r2:List[Float64]) raises:
     var ott = (r1[0] + r1[1] + r1[2] + r2[0] + r2[1] + r2[2])/1_000_000_000
     with open("results_mojo.json", 'w') as f:
         f.write(String("{\n"))

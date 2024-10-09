@@ -1,18 +1,19 @@
 from .keys_container import KeysBuilder, KeyRef
+from memory import bitcast, memcpy
 
 struct SingleKeyBuilder(KeysBuilder):
-    var key: DTypePointer[DType.uint8]
+    var key: UnsafePointer[UInt8]
     var allocated_bytes: Int
     var key_size: Int
 
     fn __init__(inout self, bytes: Int = 64):
         self.allocated_bytes = bytes
-        self.key = DTypePointer[DType.uint8].alloc(self.allocated_bytes)
+        self.key = UnsafePointer[UInt8].alloc(self.allocated_bytes)
         self.key_size = 0
 
     fn __copyinit__(inout self, existing: Self):
         self.allocated_bytes = existing.allocated_bytes
-        self.key = DTypePointer[DType.uint8].alloc(self.allocated_bytes)
+        self.key = UnsafePointer[UInt8].alloc(self.allocated_bytes)
         memcpy(self.key, existing.key, self.allocated_bytes)
         self.key_size = existing.key_size
 
@@ -36,7 +37,7 @@ struct SingleKeyBuilder(KeysBuilder):
             needs_realocation = True
 
         if needs_realocation:
-            var key = DTypePointer[DType.uint8].alloc(self.allocated_bytes)
+            var key = UnsafePointer[UInt8].alloc(self.allocated_bytes)
             memcpy(key, self.key, old_key_size)
             self.key.free()
             self.key = key
@@ -44,7 +45,7 @@ struct SingleKeyBuilder(KeysBuilder):
         self.key.store(old_key_size, bitcast[DType.uint8, size * T.sizeof()](value))
     
     @always_inline
-    fn add_buffer[T: DType](inout self, pointer: DTypePointer[T], size: Int):
+    fn add_buffer[T: DType](inout self, pointer: UnsafePointer[Scalar[T]], size: Int):
         var key_length = size * T.sizeof()
         var old_key_size = self.key_size
         self.key_size += key_length
@@ -55,7 +56,7 @@ struct SingleKeyBuilder(KeysBuilder):
             needs_realocation = True
 
         if needs_realocation:
-            var key = DTypePointer[DType.uint8].alloc(self.allocated_bytes)
+            var key = UnsafePointer[UInt8].alloc(self.allocated_bytes)
             memcpy(key, self.key, old_key_size)
             self.key.free()
             self.key = key

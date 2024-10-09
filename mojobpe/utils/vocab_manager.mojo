@@ -1,6 +1,6 @@
 from algorithm import parallelize
 from collections.vector import InlinedFixedVector
-from python import Python
+from python import Python, PythonObject
 
 from .merge_manager import MergeManager
 from .mostring import MoString, MoText

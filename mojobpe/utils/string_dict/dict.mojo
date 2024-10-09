@@ -1,6 +1,6 @@
 from bit import pop_count, bit_width
 from memory import memset_zero, memcpy
-from collections import List
+from collections import List, Optional
 from .string_eq import eq
 from .keys_container import KeysContainer
 from .ahasher import ahash
@@ -10,14 +10,14 @@ struct Dict[
     hash: fn(String) -> UInt64 = ahash,
     KeyCountType: DType = DType.uint32,
     KeyOffsetType: DType = DType.uint32,
-    destructive: Bool = False,
+    destructive: Bool = True,
     caching_hashes: Bool = True,
 ](Sized):
     var keys: KeysContainer[KeyOffsetType]
-    var key_hashes: DTypePointer[KeyCountType]
+    var key_hashes: UnsafePointer[Scalar[KeyCountType]]
     var values: List[V]
-    var slot_to_index: DTypePointer[KeyCountType]
-    var deleted_mask: DTypePointer[DType.uint8]
+    var slot_to_index: UnsafePointer[Scalar[KeyCountType]]
+    var deleted_mask: UnsafePointer[UInt8]
     var count: Int
     var capacity: Int
 
@@ -39,18 +39,18 @@ struct Dict[
         self.keys = KeysContainer[KeyOffsetType](capacity)
         @parameter
         if caching_hashes:
-            self.key_hashes = DTypePointer[KeyCountType].alloc(self.capacity)
+            self.key_hashes = UnsafePointer[Scalar[KeyCountType]].alloc(self.capacity)
         else:
-            self.key_hashes = DTypePointer[KeyCountType].alloc(0)
+            self.key_hashes = UnsafePointer[Scalar[KeyCountType]].alloc(0)
         self.values = List[V](capacity=capacity)
-        self.slot_to_index = DTypePointer[KeyCountType].alloc(self.capacity)
+        self.slot_to_index = UnsafePointer[Scalar[KeyCountType]].alloc(self.capacity)
         memset_zero(self.slot_to_index, self.capacity)
         @parameter
         if destructive:
-            self.deleted_mask = DTypePointer[DType.uint8].alloc(self.capacity >> 3)
+            self.deleted_mask = UnsafePointer[UInt8].alloc(self.capacity >> 3)
             memset_zero(self.deleted_mask, self.capacity >> 3)
         else:
-            self.deleted_mask = DTypePointer[DType.uint8].alloc(0)
+            self.deleted_mask = UnsafePointer[UInt8].alloc(0)
 
     fn __copyinit__(inout self, existing: Self):
         self.count = existing.count
@@ -58,19 +58,19 @@ struct Dict[
         self.keys = existing.keys
         @parameter
         if caching_hashes:
-            self.key_hashes = DTypePointer[KeyCountType].alloc(self.capacity)
+            self.key_hashes = UnsafePointer[Scalar[KeyCountType]].alloc(self.capacity)
             memcpy(self.key_hashes, existing.key_hashes, self.capacity)
         else:
-            self.key_hashes = DTypePointer[KeyCountType].alloc(0)
+            self.key_hashes = UnsafePointer[Scalar[KeyCountType]].alloc(0)
         self.values = existing.values
-        self.slot_to_index = DTypePointer[KeyCountType].alloc(self.capacity)
+        self.slot_to_index = UnsafePointer[Scalar[KeyCountType]].alloc(self.capacity)
         memcpy(self.slot_to_index, existing.slot_to_index, self.capacity)
         @parameter
         if destructive:
-            self.deleted_mask = DTypePointer[DType.uint8].alloc(self.capacity >> 3)
+            self.deleted_mask = UnsafePointer[UInt8].alloc(self.capacity >> 3)
             memcpy(self.deleted_mask, existing.deleted_mask, self.capacity >> 3)
         else:
-            self.deleted_mask = DTypePointer[DType.uint8].alloc(0)
+            self.deleted_mask = UnsafePointer[UInt8].alloc(0)
 
     fn __moveinit__(inout self, owned existing: Self):
         self.count = existing.count
@@ -165,17 +165,17 @@ struct Dict[
         var old_capacity = self.capacity
         self.capacity <<= 1
         var mask_capacity = self.capacity >> 3
-        self.slot_to_index = DTypePointer[KeyCountType].alloc(self.capacity)
+        self.slot_to_index = UnsafePointer[Scalar[KeyCountType]].alloc(self.capacity)
         memset_zero(self.slot_to_index, self.capacity)
         
         var key_hashes = self.key_hashes
         @parameter
         if caching_hashes:
-            key_hashes = DTypePointer[KeyCountType].alloc(self.capacity)
+            key_hashes = UnsafePointer[Scalar[KeyCountType]].alloc(self.capacity)
             
         @parameter
         if destructive:
-            var deleted_mask = DTypePointer[DType.uint8].alloc(mask_capacity)
+            var deleted_mask = UnsafePointer[UInt8].alloc(mask_capacity)
             memset_zero(deleted_mask, mask_capacity)
             memcpy(deleted_mask, self.deleted_mask, old_capacity >> 3)
             self.deleted_mask.free()

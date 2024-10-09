@@ -1,6 +1,6 @@
 # This code is based on https://github.com/tkaitchuck/aHash
 
-from bit import rotate_bits_left, bit_reverse
+from bit import rotate_bits_left, byte_swap
 
 alias U256 = SIMD[DType.uint64, 4]
 alias U128 = SIMD[DType.uint64, 2]
@@ -10,13 +10,13 @@ alias ROT = 23
 
 @always_inline
 fn folded_multiply(s: UInt64, by: UInt64) -> UInt64:
-    var b1 = s * bit_reverse(by)
-    var b2 = bit_reverse(s) * (~by)
-    return b1 ^ bit_reverse(b2)
+    var b1 = s * byte_swap(by)
+    var b2 = byte_swap(s) * (~by)
+    return b1 ^ byte_swap(b2)
 
 
 @always_inline
-fn read_small(data: DTypePointer[DType.uint8], length: Int) -> U128:
+fn read_small(data: UnsafePointer[UInt8], length: Int) -> U128:
     if length >= 2:
         if length >= 4:
             # len 4-8
@@ -67,7 +67,7 @@ struct AHasher:
         return (folded << rot) | (folded >> (64 - rot))
 
     @always_inline
-    fn write(inout self, data: DTypePointer[DType.uint8], length: Int):
+    fn write(inout self, data: UnsafePointer[UInt8], length: Int):
         self.buffer = (self.buffer + length) * MULTIPLE
         if length > 8:
             if length > 16:
@@ -89,7 +89,7 @@ struct AHasher:
 @always_inline
 fn ahash(s: String) -> UInt64:
     var length = len(s)
-    var b = s.unsafe_uint8_ptr()
+    var b = s.unsafe_ptr()
     var hasher = AHasher(U256(0, 0, 0, 0))
 
     if length > 8:

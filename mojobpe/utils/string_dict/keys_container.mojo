@@ -1,9 +1,10 @@
 from collections.vector import InlinedFixedVector
+from memory import memcpy
 
 struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
-    var keys: DTypePointer[DType.int8]
+    var keys: UnsafePointer[UInt8]
     var allocated_bytes: Int
-    var keys_end: DTypePointer[KeyEndType]
+    var keys_end: UnsafePointer[Scalar[KeyEndType]]
     var count: Int
     var capacity: Int
 
@@ -16,8 +17,8 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
             "KeyEndType needs to be an unsigned integer"
         ]()
         self.allocated_bytes = capacity << 3
-        self.keys = DTypePointer[DType.int8].alloc(self.allocated_bytes)
-        self.keys_end = DTypePointer[KeyEndType].alloc(capacity)
+        self.keys = UnsafePointer[UInt8].alloc(self.allocated_bytes)
+        self.keys_end = UnsafePointer[Scalar[KeyEndType]].alloc(capacity)
         self.count = 0
         self.capacity = capacity
 
@@ -25,9 +26,9 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
         self.allocated_bytes = existing.allocated_bytes
         self.count = existing.count
         self.capacity = existing.capacity
-        self.keys = DTypePointer[DType.int8].alloc(self.allocated_bytes)
+        self.keys = UnsafePointer[UInt8].alloc(self.allocated_bytes)
         memcpy(self.keys, existing.keys, self.allocated_bytes)
-        self.keys_end = DTypePointer[KeyEndType].alloc(self.allocated_bytes)
+        self.keys_end = UnsafePointer[Scalar[KeyEndType]].alloc(self.allocated_bytes)
         memcpy(self.keys_end, existing.keys_end, self.capacity)
 
     fn __moveinit__(inout self, owned existing: Self):
@@ -53,16 +54,16 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
             needs_realocation = True
 
         if needs_realocation:
-            var keys = DTypePointer[DType.int8].alloc(self.allocated_bytes)
+            var keys = UnsafePointer[UInt8].alloc(self.allocated_bytes)
             memcpy(keys, self.keys, int(prev_end))
             self.keys.free()
             self.keys = keys
         
-        memcpy(self.keys.offset(prev_end), key.unsafe_ptr(), key_length)
+        memcpy(self.keys.offset(int(prev_end)), UnsafePointer(key.unsafe_ptr()), key_length)
         var count = self.count + 1
         if count >= self.capacity:
             var new_capacity = self.capacity + (self.capacity >> 1)
-            var keys_end = DTypePointer[KeyEndType].alloc(self.allocated_bytes)
+            var keys_end = UnsafePointer[Scalar[KeyEndType]].alloc(self.allocated_bytes)
             memcpy(keys_end, self.keys_end, self.capacity)
             self.keys_end.free()
             self.keys_end = keys_end

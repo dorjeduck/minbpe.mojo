@@ -6,7 +6,6 @@ This project is a port of Andrej Karpathy's [minbpe](https://github.com/karpathy
 
 Not all features of `minpe` are available yet, but will be introduced as the project evolves. Currently, the main focus is on enhancing the performance of the core functionality.
 
-
 ## Implementation
 
 Due to differences in language capabilities, the architecture of this port has been modified to fit the constraints and features of Mojo. While the architecture is different, the core functionalities and behaviors of the application remain the same as in the original. As Mojo's language features continue to evolve, we expect to further refine and redesign the project.
@@ -17,18 +16,14 @@ Tokenizers in `minbpe.mojo` are implemented by confirming to the `Tokenizer` tra
 
 - **BasicTokenizer**: Implements the BasicTokenizer, the simplest implementation of the BPE algorithm that runs directly on text.
 - **RegexTokenizer**: Implements the RegexTokenizer that further splits the input text by a regex pattern, which is a preprocessing stage that splits up the input text by categories (think: letters, numbers, punctuation) before tokenization. This ensures that no merges will happen across category boundaries. This was introduced in the GPT-2 paper and continues to be in use as of GPT-4. This class also handles special tokens, if any.
-- **GPT4Tokenizer** to be implemented 
+- **GPT4Tokenizer** to be implemented
 
 ## Quick Start
 
-- First make sure you have [Mojo 24.4](https://docs.modular.com/mojo/manual/get-started/) installed.  
-- In addtion you need to install the Python library `regex`. We rely on `regex` because Mojo currently lacks a powerful native regular expression library. Mojo's ability to utilize Python libraries allows us to enhance functionality in this way. For information on this powerful language feature, see the [Python Integration](https://docs.modular.com/mojo/manual/python/) section in the official Mojo documentation.
+- Ensure that the `Magic` command line tool is installed by following the [Modular Docs](https://docs.modular.com/magic).
+- Run `magic shell` within the root of the cloned repository to install the project's dependencies (Mojo 24.5 via Max, Regex), and to activate the project's virtual environment in which you can run the mojo apps.
 
- ```bash
- pip install regex
- ```
-
-- The [quick start](https://github.com/karpathy/minbpe?tab=readme-ov-file#quick-start) example from `minbpe` can be implement with `minbpe.mojo` as follows:
+The [quick start](https://github.com/karpathy/minbpe?tab=readme-ov-file#quick-start) example from `minbpe` can be implement with `minbpe.mojo` as follows:
 
  ```python
 from mojobpe import Tokenizer,BasicTokenizer
@@ -69,7 +64,7 @@ mojo train.mojo
   - Performance improvements
 - 2024.05.12
   - Switch to [MoString](https://github.com/dorjeduck/mostring) for String concatenation
-- 2024.05.04    
+- 2024.05.04
   - Initial repository setup and commit.
 
 ### Remarks

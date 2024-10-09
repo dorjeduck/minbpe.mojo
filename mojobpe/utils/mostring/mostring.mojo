@@ -1,3 +1,4 @@
+from memory import memcpy
 
 struct MoString[MEM_AHEAD_FACTOR:Int = 2](CollectionElement):
     var string:String
