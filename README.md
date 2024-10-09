@@ -51,11 +51,14 @@ A detailed benchmark analysis will be available soon.
 For now we have included a Mojo port of `train.py` from the original repository, which times the training of both the Basic and Regex Tokenizer with the text from Taylor Swift's Wikipedia page. In our preliminary tests, the Mojo version proves to be approximately three times faster than the original Python implementation. You can run this training benchmark test using the following command:
 
 ```bash
+magic shell
 mojo train.mojo
 ```
 
 ## Changelog
 
+- 2024.10.09
+  - Update to Mojo 24.5
 - 2024.06.07
   - Update to Mojo 24.4
   - Performance improvements thanks to new features of [CompactDict](https://github.com/mzaks/compact-dict)
