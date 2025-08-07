@@ -1,15 +1,15 @@
 {
 	"basic": {
-		"training_time": 0.70094800000000002,
-		"encoding_time": 0.62391700000000005,
-		"decoding_time": 0.013435000000000001,
-		"total_time": 1.3383
+		"training_time": 0.575493,
+		"encoding_time": 0.452512,
+		"decoding_time": 0.001257,
+		"total_time": 1.029262
 	},
 	"regex": {
-		"training_time": 0.86955199999999999,
-		"encoding_time": 0.33345000000000002,
-		"decoding_time": 0.014782,
-		"total_time": 1.217784
+		"training_time": 0.466239,
+		"encoding_time": 0.084472,
+		"decoding_time": 0.001443,
+		"total_time": 0.552154
 	},
-	"overall_total_time":2.5560839999999998
+	"overall_total_time":1.581416
 }

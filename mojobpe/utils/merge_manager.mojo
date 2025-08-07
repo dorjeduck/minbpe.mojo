@@ -1,23 +1,30 @@
 from collections import Set
+from hashlib.hash import Hasher
 
 from .tat import print_list_int, distribute_jobs
-from .generic_dict import Dict as GenericDict, Keyable, KeysBuilder, Set as GenericSet
+from .generic_dict import (
+    Dict as GenericDict,
+    Keyable,
+    KeysBuilder,
+    Set as GenericSet,
+)
 from .generic_dict import CounterDict
 
-@value
-struct IDPair(Keyable, KeyElement):
+
+@fieldwise_init
+struct IDPair(KeyElement, Keyable,Stringable):
     var data: SIMD[DType.uint64, 2]
 
     @always_inline("nodebug")
-    fn __init__(inout self):
+    fn __init__(out self):
         self.data = SIMD[DType.uint64, 2](-1, -1)
 
     @always_inline("nodebug")
-    fn __init__(inout self, id1: Int, id2: Int):
+    fn __init__(out self, id1: Int, id2: Int):
         self.data = SIMD[DType.uint64, 2](id1, id2)
 
     @always_inline("nodebug")
-    fn __init__(inout self, id1: String, id2: String) raises:
+    fn __init__(out self, id1: String, id2: String) raises:
         self.data = SIMD[DType.uint64, 2](atol(id1), atol(id2))
 
     @always_inline("nodebug")
@@ -30,95 +37,97 @@ struct IDPair(Keyable, KeyElement):
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
-        return "(" + str(self.data[0]) + ", " + str(self.data[1]) + ")"
+        return "(" + String(self.data[0]) + ", " + String(self.data[1]) + ")"
 
     @always_inline("nodebug")
-    fn __hash__(self) -> UInt:
-        return hash(self.data[0] + 31 * self.data[1])
+    fn __hash__[H: Hasher](self, mut hasher: H):
+        return hasher.update(self.data[0] + 31 * self.data[1])
 
     @always_inline("nodebug")
-    fn accept[T: KeysBuilder](self, inout keys_builder: T):
+    fn accept[T: KeysBuilder](self, mut keys_builder: T):
         keys_builder.add(self.data[0])
         keys_builder.add(self.data[1])
 
     @always_inline("nodebug")
     fn get_model_string(self) -> String:
-        return str(self.data[0]) + " " + str(self.data[1])
+        return String(self.data[0]) + " " + String(self.data[1])
 
     @always_inline("nodebug")
     fn as_chr(self) -> String:
-        return chr(int(self.data[0])) + chr(int(self.data[1]))
+        return chr(Int(self.data[0])) + chr(Int(self.data[1]))
 
 
-@value
-struct MergeRule(Stringable):
+struct MergeRule(Copyable, Movable, Stringable):
     var input_id_pair: IDPair
     var merge_id: Int
 
     @always_inline("nodebug")
-    fn __init__(inout self, input_id_pair: IDPair, merge_id: Int):
+    fn __init__(out self, input_id_pair: IDPair, merge_id: Int):
         self.input_id_pair = input_id_pair
         self.merge_id = merge_id
 
     @always_inline("nodebug")
-    fn __init__(inout self, input_id1: Int, input_id2: Int, merge_id: Int):
+    fn __init__(out self, input_id1: Int, input_id2: Int, merge_id: Int):
         self.input_id_pair = IDPair(input_id1, input_id2)
         self.merge_id = merge_id
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
-        return str(self.input_id_pair) + " -> " + str(self.merge_id)
+        return String(self.input_id_pair) + " -> " + String(self.merge_id)
 
 
 struct MergeManager:
     var merge_rules: List[MergeRule]
-    var merge_rules_dict : GenericDict[Int]
+    var merge_rules_dict: GenericDict[Int]
 
     @always_inline("nodebug")
-    fn __init__(inout self):
+    fn __init__(out self):
         self.merge_rules = List[MergeRule]()
         self.merge_rules_dict = GenericDict[Int]()
 
     @always_inline("nodebug")
-    fn clear(inout self):
+    fn clear(mut self):
         self.merge_rules.clear()
         self.merge_rules_dict = GenericDict[Int]()
 
     @always_inline("nodebug")
-    fn add_rule(inout self, merge_rule: MergeRule) raises:
+    fn add_rule(mut self, merge_rule: MergeRule) raises:
         self.merge_rules.append(merge_rule)
-        _ = self.merge_rules_dict.put(merge_rule.input_id_pair,merge_rule.merge_id)
+        _ = self.merge_rules_dict.put(
+            merge_rule.input_id_pair, merge_rule.merge_id
+        )
 
     @always_inline("nodebug")
-    fn apply_rules(inout self, inout ids: List[Int ]) raises -> None:
-        var UPPER_VAL:Int = 100000
-       
-        var min_val = UPPER_VAL
+    fn apply_rules(mut self, mut ids: List[Int]) raises -> None:
+        var UPPER_VAL: Int = 100000
+
+        
         var min_pair = IDPair()
         while True:
             var min_val = UPPER_VAL
-            var unique_pairs = MergeManager.get_unique_pairs(ids)  
-            for up in unique_pairs:  
-                var val = self.merge_rules_dict.get(up[],UPPER_VAL)
+        
+            var unique_pairs = MergeManager.get_unique_pairs(ids)
+            for up in unique_pairs:
+                var val = self.merge_rules_dict.get(up, UPPER_VAL)
                 if val < min_val:
                     min_val = val
-                    min_pair = up[]
-            
+                    min_pair = up
+
             if min_val < UPPER_VAL:
-                MergeManager.merge(ids, MergeRule(min_pair,min_val))
+                MergeManager.merge(ids, MergeRule(min_pair, min_val))
             else:
                 break
 
     @always_inline("nodebug")
-    fn apply_rules_slow(self, inout ids: List[Int]) raises -> None:
+    fn apply_rules_slow(mut self, mut ids: List[Int]) raises -> None:
         while True:
             var merged = False
             var unique_pairs = MergeManager.get_unique_pairs(ids)
             for rule in self.merge_rules:
-                var rule_value = rule[]
+                
                 for up in unique_pairs:
-                    if rule_value.input_id_pair == up[]:
-                        MergeManager.merge(ids, rule_value)
+                    if rule.input_id_pair == up:
+                        MergeManager.merge(ids, rule)
                         merged = True
                         break
                 if merged:
@@ -131,7 +140,7 @@ struct MergeManager:
         var tmp = GenericSet()
 
         var unique_pairs = List[IDPair]()
-        
+
         for i in range(0, len(ids) - 1):
             var p = IDPair(ids[i], ids[i + 1])
             if tmp.put(p):
@@ -142,7 +151,7 @@ struct MergeManager:
     @staticmethod
     @always_inline("nodebug")
     fn update_stats_and_keys(
-        inout stats: CounterDict, inout keys: List[IDPair], ids: List[Int]
+        mut stats: CounterDict, mut keys: List[IDPair], ids: List[Int]
     ) raises -> None:
         for i in range(0, len(ids) - 1):
             var p = IDPair(ids[i], ids[i + 1])
@@ -152,7 +161,7 @@ struct MergeManager:
     @staticmethod
     @always_inline("nodebug")
     fn update_stats_get_max(
-        inout stats: CounterDict, ids: List[Int]
+        mut stats: CounterDict, ids: List[Int]
     ) raises -> IDPair:
         var unique_id_pairs = List[IDPair]()
         MergeManager.update_stats_and_keys(stats, unique_id_pairs, ids)
@@ -167,17 +176,16 @@ struct MergeManager:
                 max_pair = unique_id_pairs[j]
         return max_pair
 
-   
     @staticmethod
     @always_inline("nodebug")
-    fn merge(inout ids: List[Int], merge_rule: MergeRule) -> None:
+    fn merge(mut ids: List[Int], merge_rule: MergeRule) -> None:
         var i = 0
         var gone = 0
         while i < len(ids):
             if (
-                ids[i] == int(merge_rule.input_id_pair.data[0])
+                ids[i] == Int(merge_rule.input_id_pair.data[0])
                 and i < len(ids) - 1
-                and ids[i + 1] == int(merge_rule.input_id_pair.data[1])
+                and ids[i + 1] == Int(merge_rule.input_id_pair.data[1])
             ):
                 ids[i - gone] = merge_rule.merge_id
                 i += 2
@@ -198,14 +206,14 @@ struct MergeManager:
     ) -> None:
         print(
             "merge "
-            + str(round)
+            + String(round)
             + "/"
-            + str(total)
+            + String(total)
             + ": "
-            + str(merge_rule)
+            + String(merge_rule)
             + " (b'"
             + new_vocab
             + "') had "
-            + str(occurrences)
+            + String(occurrences)
             + " occurrences"
         )

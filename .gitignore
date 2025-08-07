@@ -1,6 +1,7 @@
 .DS_Store
 /benchmarks
-x.*
+/lab/*
+x*.*
 toy# pixi environments
 .pixi
 *.egg-info

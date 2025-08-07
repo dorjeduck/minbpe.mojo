@@ -1,26 +1,25 @@
-from collections.vector import InlinedFixedVector
-from memory import bitcast, memcpy, UnsafePointer
+from memory import memcpy, bitcast
 
 trait Keyable:
-    fn accept[T: KeysBuilder](self, inout keys_builder: T): ...
+    fn accept[T: KeysBuilder](self, mut keys_builder: T): ...
 
 alias lookup = String("0123456789abcdef")
 
-@value
-struct KeyRef(Stringable):
+@fieldwise_init
+struct KeyRef(Stringable, Copyable, Movable):
     var pointer: UnsafePointer[UInt8]
     var size: Int
 
     fn __str__(self) -> String:
-        var result = String("(") + str(self.size) + (")")
+        var result = String("(") + String(self.size) + (")")
         for i in range(self.size):
-            result += lookup[int(self.pointer.load(i) >> 4)]
-            result += lookup[int(self.pointer.load(i) & 0xf)]
+            result += lookup[Int(self.pointer.load(i) >> 4)]
+            result += lookup[Int(self.pointer.load(i) & 0xf)]
         return result
 
 trait KeysBuilder:
-    fn add[T: DType, size: Int](inout self, value: SIMD[T, size]): ...
-    fn add_buffer[T: DType](inout self, pointer: UnsafePointer[Scalar[T]], size: Int): ...
+    fn add[T: DType, size: Int](mut self, value: SIMD[T, size]): ...
+    fn add_buffer[T: DType](mut self, pointer: UnsafePointer[Scalar[T]], size: Int): ...
 
 struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
     var keys: UnsafePointer[UInt8]
@@ -30,7 +29,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
     var capacity: Int
     var key_size: Int
 
-    fn __init__(inout self, capacity: Int):
+    fn __init__(out self, capacity: Int):
         constrained[
             KeyEndType == DType.uint8 or 
             KeyEndType == DType.uint16 or 
@@ -45,7 +44,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
         self.capacity = capacity
         self.key_size = 0
 
-    fn __copyinit__(inout self, existing: Self):
+    fn __copyinit__(out self, existing: Self):
         self.allocated_bytes = existing.allocated_bytes
         self.count = existing.count
         self.capacity = existing.capacity
@@ -55,7 +54,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
         self.keys_end = UnsafePointer[Scalar[KeyEndType]].alloc(self.allocated_bytes)
         memcpy(self.keys_end, existing.keys_end, self.capacity)
 
-    fn __moveinit__(inout self, owned existing: Self):
+    fn __moveinit__(out self, owned existing: Self):
         self.allocated_bytes = existing.allocated_bytes
         self.count = existing.count
         self.capacity = existing.capacity
@@ -68,7 +67,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
         self.keys_end.free()
 
     @always_inline  
-    fn add[T: DType, size: Int](inout self, value: SIMD[T, size]):
+    fn add[T: DType, size: Int](mut self, value: SIMD[T, size]):
         var prev_end = 0 if self.count == 0 else self.keys_end[self.count - 1]
         var key_length = size * T.sizeof()
         var old_key_size = self.key_size
@@ -82,14 +81,14 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
 
         if needs_realocation:
             var keys = UnsafePointer[UInt8].alloc(self.allocated_bytes)
-            memcpy(keys, self.keys, int(prev_end) + old_key_size)
+            memcpy(keys, self.keys, Int(prev_end) + old_key_size)
             self.keys.free()
             self.keys = keys
         
         self.keys.store(prev_end + old_key_size, bitcast[DType.uint8, size * T.sizeof()](value))
 
     @always_inline
-    fn add_buffer[T: DType](inout self, pointer: UnsafePointer[Scalar[T]], size: Int):
+    fn add_buffer[T: DType](mut self, pointer: UnsafePointer[Scalar[T]], size: Int):
         var prev_end = 0 if self.count == 0 else self.keys_end[self.count - 1]
         var key_length = size * T.sizeof()
         var old_key_size = self.key_size
@@ -103,14 +102,14 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
 
         if needs_realocation:
             var keys = UnsafePointer[UInt8].alloc(self.allocated_bytes)
-            memcpy(keys, self.keys, int(prev_end) + old_key_size) 
+            memcpy(keys, self.keys, Int(prev_end) + old_key_size)
             self.keys.free()
             self.keys = keys
         
-        memcpy(self.keys.offset(int(prev_end + old_key_size)), pointer.bitcast[DType.uint8](), key_length)
+        memcpy(self.keys.offset(prev_end + old_key_size), pointer.bitcast[UInt8](), key_length)
 
     @always_inline
-    fn end_key(inout self):
+    fn end_key(mut self):
         var prev_end = 0 if self.count == 0 else self.keys_end[self.count - 1]
         var count = self.count + 1
         if count >= self.capacity:
@@ -126,7 +125,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
         self.key_size = 0
 
     @always_inline
-    fn drop_last(inout self):
+    fn drop_last(mut self):
         self.count -= 1
 
     @always_inline
@@ -137,12 +136,12 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
     fn get(self, index: Int) raises -> KeyRef:
         if index < 0 or index >= self.count:
             raise "Invalid index"
-        var start = 0 if index == 0 else int(self.keys_end[index - 1])
-        var length = int(self.keys_end[index]) - start
+        var start = 0 if index == 0 else Int(self.keys_end[index - 1])
+        var length = Int(self.keys_end[index]) - start
         return KeyRef(self.keys.offset(start), length)
 
     @always_inline
-    fn clear(inout self):
+    fn clear(mut self):
         self.count = 0
 
     @always_inline
@@ -154,7 +153,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized, KeysBuilder):
         return self.count
 
     fn print_keys(self) raises:
-        print("(" + str(self.count) + ")[")
+        print("(" + String(self.count) + ")[")
         for i in range(self.count):
             var end = ", " if i < self.capacity - 1 else "]\n"
-            print(self[i], end=end)
+            print(String(self[i]), end=end)

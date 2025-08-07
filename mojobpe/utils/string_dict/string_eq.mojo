@@ -1,12 +1,9 @@
-from memory import UnsafePointer
-from utils import StringRef
-
 @always_inline
-fn eq(a: StringRef, b: String) -> Bool:
+fn eq(a: String, b: String) -> Bool:
     var l = len(a)
     if l != len(b):
         return False
-    var p1 = UnsafePointer(a.data)
+    var p1 = UnsafePointer(a.unsafe_ptr())
     var p2 = UnsafePointer(b.unsafe_ptr())
     var offset = 0
     alias step = 16

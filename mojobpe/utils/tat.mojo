@@ -4,17 +4,19 @@
 
 from utils import Variant
 
-from .generic_dict import Keyable,KeysBuilder
+from .generic_dict import Keyable, KeysBuilder
 
 alias IntOrString = Variant[Int, String]
 
 
-@value
+@fieldwise_init
 struct IntKey(Keyable):
-    var key:UInt64
+    var key: UInt64
+
     @always_inline("nodebug")
-    fn accept[T: KeysBuilder](self, inout keys_builder: T):
+    fn accept[T: KeysBuilder](self, mut keys_builder: T):
         keys_builder.add(self.key)
+
 
 fn distribute_jobs(n_jobs: Int, n_workers: Int, overlap: Int = 0) -> List[Int]:
     """
@@ -57,7 +59,7 @@ fn print_list_str(x: List[String]) -> None:
     print("[", end="")
     for i in range(len(x) - 1):
         print(x[i], end=", ")
-    print(str(x[-1]) + "]")
+    print(String(x[-1]) + "]")
 
 
 fn print_list_int(x: List[Int]) -> None:
@@ -67,4 +69,4 @@ fn print_list_int(x: List[Int]) -> None:
     print("[", end="")
     for i in range(len(x) - 1):
         print(x[i], end=", ")
-    print(str(x[-1]) + "]")
+    print(String(x[-1]) + "]")

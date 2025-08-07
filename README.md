@@ -6,6 +6,8 @@ This project is a port of Andrej Karpathy's [minbpe](https://github.com/karpathy
 
 Not all features of `minpe` are available yet, but will be introduced as the project evolves. Currently, the main focus is on enhancing the performance of the core functionality.
 
+> **Note**: This project is based on the stable Mojo 25.5 release.
+
 ## Implementation
 
 Due to differences in language capabilities, the architecture of this port has been modified to fit the constraints and features of Mojo. While the architecture is different, the core functionalities and behaviors of the application remain the same as in the original. As Mojo's language features continue to evolve, we expect to further refine and redesign the project.
@@ -20,8 +22,8 @@ Tokenizers in `minbpe.mojo` are implemented by confirming to the `Tokenizer` tra
 
 ## Quick Start
 
-- Ensure that the `Magic` command line tool is installed by following the [Modular Docs](https://docs.modular.com/magic).
-- Run `magic shell` within the root of the cloned repository to install the project's dependencies (Mojo 24.5 via Max, Regex), and to activate the project's virtual environment in which you can run the mojo apps.
+- If you don't have it, install [pixi](https://pixi.sh/latest/):
+- Run `pixi shell` within the root of the cloned repository to install the project's dependencies (Mojo 25.5), and to activate the project's virtual environment in which you can run the mojo apps.
 
 The [quick start](https://github.com/karpathy/minbpe?tab=readme-ov-file#quick-start) example from `minbpe` can be implement with `minbpe.mojo` as follows:
 
@@ -57,6 +59,8 @@ mojo train.mojo
 
 ## Changelog
 
+- 2025.08.07
+  - Update to Mojo 25.5
 - 2024.10.09
   - Update to Mojo 24.5
 - 2024.06.07

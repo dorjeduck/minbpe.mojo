@@ -1,12 +1,12 @@
 from bit import pop_count, bit_width
-from memory import memset_zero, memcpy, UnsafePointer
+from memory import memset_zero, memcpy
 from .key_eq import eq
 from .keys_container import KeysContainer, KeyRef, Keyable
 from .ahasher import ahash
 from .single_key_builder import SingleKeyBuilder
  
 struct Dict[
-    V: CollectionElement, 
+    V: Copyable & Movable,
     hash: fn(KeyRef) -> UInt64 = ahash,
     KeyCountType: DType = DType.uint32,
     KeyOffsetType: DType = DType.uint32,
@@ -17,12 +17,12 @@ struct Dict[
     var key_hashes: UnsafePointer[Scalar[KeyCountType]]
     var values: List[V]
     var slot_to_index: UnsafePointer[Scalar[KeyCountType]]
-    var deleted_mask: UnsafePointer[Scalar[DType.uint8]]
+    var deleted_mask: UnsafePointer[UInt8]
     var count: Int
     var capacity: Int
     var key_builder: SingleKeyBuilder
 
-    fn __init__(inout self, capacity: Int = 16):
+    fn __init__(out self, capacity: Int = 16):
         constrained[
             KeyCountType == DType.uint8 or 
             KeyCountType == DType.uint16 or 
@@ -36,7 +36,7 @@ struct Dict[
         else:
             var icapacity = Int64(capacity)
             self.capacity = capacity if pop_count(icapacity) == 1 else
-                            1 << int(bit_width(icapacity))
+                            1 << Int(bit_width(icapacity))
         self.keys = KeysContainer[KeyOffsetType](capacity)
         self.key_builder = SingleKeyBuilder()
         @parameter
@@ -52,13 +52,12 @@ struct Dict[
             self.deleted_mask = UnsafePointer[UInt8].alloc(self.capacity >> 3)
             memset_zero(self.deleted_mask, self.capacity >> 3)
         else:
-            self.deleted_mask = UnsafePointer[UInt8].alloc(0)            
+            self.deleted_mask = UnsafePointer[UInt8].alloc(0)
 
-    fn __copyinit__(inout self, existing: Self):
+    fn __copyinit__(out self, existing: Self):
         self.count = existing.count
         self.capacity = existing.capacity
         self.keys = existing.keys
-        #self.key_builder = self.key_builder
         self.key_builder = existing.key_builder
         @parameter
         if caching_hashes:
@@ -76,7 +75,7 @@ struct Dict[
         else:
             self.deleted_mask = UnsafePointer[UInt8].alloc(0)
 
-    fn __moveinit__(inout self, owned existing: Self):
+    fn __moveinit__(out self, owned existing: Self):
         self.count = existing.count
         self.capacity = existing.capacity
         self.keys = existing.keys^
@@ -95,7 +94,7 @@ struct Dict[
         return self.count
 
     @always_inline
-    fn __contains__[T: Keyable](inout self, key: T) -> Bool:
+    fn __contains__[T: Keyable](mut self, key: T) -> Bool:
         try:
             self.key_builder.reset()
             key.accept(self.key_builder)
@@ -104,7 +103,7 @@ struct Dict[
         except:
             return False
 
-    fn put[T: Keyable](inout self, key: T, value: V) raises -> Bool:
+    fn put[T: Keyable](mut self, key: T, value: V) raises -> Bool:
         """Return True when value is inserted and not updated."""
         if self.count / self.capacity >= 0.87:
             self._rehash()
@@ -114,9 +113,9 @@ struct Dict[
 
         var key_hash = hash(key_ref).cast[KeyCountType]()
         var modulo_mask = self.capacity - 1
-        var slot = int(key_hash & modulo_mask)
+        var slot = Int(key_hash & modulo_mask)
         while True:
-            var key_index = int(self.slot_to_index.load(slot))
+            var key_index = Int(self.slot_to_index.load(slot))
             if key_index == 0:
                 @parameter
                 if caching_hashes:
@@ -178,7 +177,7 @@ struct Dict[
         p.store(mask & ~(1 << bit_index))
 
     @always_inline
-    fn _rehash(inout self) raises:
+    fn _rehash(mut self) raises:
         var old_slot_to_index = self.slot_to_index
         var old_capacity = self.capacity
         self.capacity <<= 1
@@ -208,12 +207,12 @@ struct Dict[
             if caching_hashes:
                 key_hash = self.key_hashes[i]
             else:
-                key_hash = hash(self.keys[int(old_slot_to_index[i] - 1)]).cast[KeyCountType]()
+                key_hash = hash(self.keys[Int(old_slot_to_index[i] - 1)]).cast[KeyCountType]()
 
-            var slot = int(key_hash & modulo_mask)
+            var slot = Int(key_hash & modulo_mask)
 
             while True:
-                var key_index = int(self.slot_to_index.load(slot))
+                var key_index = Int(self.slot_to_index.load(slot))
                 if key_index == 0:
                     self.slot_to_index.store(slot, old_slot_to_index[i])
                     break
@@ -230,7 +229,7 @@ struct Dict[
         old_slot_to_index.free()
 
     @always_inline
-    fn get[T: Keyable](inout self, key: T, default: V) raises -> V:
+    fn get[T: Keyable](mut self, key: T, default: V) raises -> V:
         self.key_builder.reset()
         key.accept(self.key_builder)
         var key_ref = self.key_builder.get_key()
@@ -243,7 +242,7 @@ struct Dict[
                 return default
         return self.values[key_index - 1]        
 
-    fn delete[T: Keyable](inout self, key: T) raises:
+    fn delete[T: Keyable](mut self, key: T) raises:
         @parameter
         if not destructive:
             return
@@ -258,7 +257,7 @@ struct Dict[
             self.count -= 1
         self._deleted(key_index - 1)
 
-    fn clear(inout self):
+    fn clear(mut self):
         self.values.clear()
         self.keys.clear()
         memset_zero(self.slot_to_index, self.capacity)
@@ -270,9 +269,9 @@ struct Dict[
     fn _find_key_index(self, key_ref: KeyRef) raises -> Int:
         var key_hash = hash(key_ref).cast[KeyCountType]()
         var modulo_mask = self.capacity - 1
-        var slot = int(key_hash & modulo_mask)
+        var slot = Int(key_hash & modulo_mask)
         while True:
-            var key_index = int(self.slot_to_index.load(slot))
+            var key_index = Int(self.slot_to_index.load(slot))
             if key_index == 0:
                 return key_index
             @parameter
