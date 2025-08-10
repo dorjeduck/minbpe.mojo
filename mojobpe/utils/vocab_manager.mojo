@@ -81,7 +81,7 @@ struct VocabManager:
         #    return ""
 
     @always_inline("nodebug")
-    fn get_tokens(mut self, ids: List[Int], include_special: Bool = False
+    fn get_tokens(mut self, ids: List[Int,True], include_special: Bool = False
     ) raises -> String:
         var res = String(capacity=len(ids)*5)
         for i in range(len(ids)):
@@ -153,16 +153,19 @@ struct VocabManager:
 
     @staticmethod
     @always_inline("nodebug")
-    fn text_to_bytes(text: String) -> List[Int]:
-        var ids = List[Int](capacity=len(text))
+    fn text_to_bytes(text: String) -> List[Int,True]:
+        
+        var bs = text.as_bytes()
+        var ids = List[Int,True](capacity=len(bs))
+        
         for i in range(len(text)):
-            ids.append(ord(text[i]))
+            ids.append(Int(bs[i]))
         return ids
 
     @staticmethod
     @always_inline("nodebug")
-    fn text_to_bytes(text: String,mut ids:List[Int]) :
+    fn text_to_bytes(text: String,mut ids:List[Int,True]) :
+        var bs = text.as_bytes()
         for i in range(len(text)):
-            ids.append(ord(text[i]))
+            ids.append(Int(bs[i]))
        
-
