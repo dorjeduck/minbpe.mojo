@@ -78,9 +78,16 @@ struct VocabManager:
         sequences in the result are replaced, mirroring minbpe's
         `decode("utf-8", errors="replace")`.
         """
-        var buf = List[UInt8](capacity=len(ids) * 5)
+        var buf = List[UInt8](capacity=len(ids) * 4)
         for i in range(len(ids)):
-            buf.extend(self.get_token(ids[i], include_special))
+            var idx = ids[i]
+            if idx in self.vocab:
+                # `vocab[idx]` hands back a reference. Going through
+                # `get(idx, default)` instead copies the token's bytes for
+                # every id, which dominates decoding.
+                buf.extend(Span(self.vocab[idx]))
+            elif include_special:
+                buf.extend(self.get_special_token(idx).as_bytes())
 
         return String(from_utf8_lossy=Span(buf))
 

@@ -126,9 +126,11 @@ struct MergeManager:
     ) raises -> None:
         for i in range(0, len(ids) - 1):
             var p = IDPair(ids[i], ids[i + 1])
-            var is_new = p not in stats
-            stats[p] = stats.get(p, 0) + 1
-            if is_new:
+            # `Counter.__getitem__` is 0 for an absent key, so the count also
+            # tells us whether this is the first sighting -- no extra probe.
+            var count = stats[p]
+            stats[p] = count + 1
+            if count == 0:
                 keys.append(p)
 
     @staticmethod

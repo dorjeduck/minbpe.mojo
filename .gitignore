@@ -2,6 +2,7 @@
 /lab/*
 x*.*
 toy.model
+/tests/tmp_*.model
 # pixi environments
 .pixi
 *.egg-info
