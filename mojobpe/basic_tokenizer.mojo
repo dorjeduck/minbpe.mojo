@@ -68,8 +68,9 @@ struct BasicTokenizer(Tokenizer):
     def decode(mut self, ids: List[Int]) raises -> String:
         return self.vocab_manager.get_tokens(ids)
 
-    def load(mut self, model_file: String) raises -> None:
-        """Inverse of save() but only for the model file."""
+    def load(mut self, file_prefix: String) raises -> None:
+        """Inverse of save(): reads `file_prefix` + ".model"."""
+        var model_file = file_prefix + ".model"
 
         # read the model file
         with open(model_file, "r") as f:
@@ -93,8 +94,9 @@ struct BasicTokenizer(Tokenizer):
                 _ = self.vocab_manager.add_token(rule)
                 idx += 1
 
-    def save(self, model_file: String) raises -> None:
-        with open(model_file, "w") as f:
+    def save(self, file_prefix: String) raises -> None:
+        """Write `file_prefix` + ".model", the file `load` reads back."""
+        with open(file_prefix + ".model", "w") as f:
             # write the version, pattern and merges, that's all that's needed
             f.write("minbpe v1\n")
             f.write("\n")  # no special pattern

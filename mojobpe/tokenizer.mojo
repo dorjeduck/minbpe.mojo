@@ -16,10 +16,10 @@ trait Trainable:
 
 
 trait Persistable:
-    def load(mut self, s: String) raises -> None:
+    def load(mut self, file_prefix: String) raises -> None:
         ...
 
-    def save(self, s: String) raises -> None:
+    def save(self, file_prefix: String) raises -> None:
         ...
 
 
