@@ -1,4 +1,4 @@
-from std.collections import Counter, Set
+from std.collections import Set
 from std.testing import (
     assert_equal,
     assert_false,
@@ -13,7 +13,7 @@ from mojobpe.standards import (
     GPT4_SPLIT_PATTERN,
     GPT4_SPECIAL_TOKENS,
 )
-from mojobpe.utils import IDPair, MergeManager, MergeRule
+from mojobpe.utils import IDPair, MergeManager, MergeRule, PairCounts
 
 comptime TAYLORSWIFT = "tests/taylorswift.txt"
 
@@ -112,15 +112,16 @@ def test_merge_manager_merge() raises:
 
 
 def test_merge_manager_stats() raises:
-    var stats = Counter[Int]()
-    var keys = List[IDPair]()
+    var stats = PairCounts()
     var ids: List[Int] = [97, 98, 97, 98]
-    MergeManager.update_stats_and_keys(stats, keys, ids)
+    MergeManager.update_stats(stats, ids)
 
-    assert_equal(len(keys), 2)
-    assert_equal(stats.get(IDPair(97, 98).packed(), 0), 2)
-    assert_equal(stats.get(IDPair(98, 97).packed(), 0), 1)
-    assert_equal(stats.get(IDPair(1, 2).packed(), 0), 0)
+    assert_equal(len(stats), 2)
+    assert_equal(stats.count(IDPair(97, 98)), 2)
+    assert_equal(stats.count(IDPair(98, 97)), 1)
+    assert_equal(stats.count(IDPair(1, 2)), 0)
+    # Ties go to the first occurrence, in insertion order.
+    assert_true(stats.max_pair(0) == IDPair(97, 98))
 
 
 def test_idpair_as_key() raises:

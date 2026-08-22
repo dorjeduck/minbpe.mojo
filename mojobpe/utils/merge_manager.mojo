@@ -1,4 +1,4 @@
-from std.collections import Counter, Set
+from std.collections import Set
 from std.hashlib import Hasher
 
 from .tat import print_list_int, distribute_jobs
@@ -71,6 +71,78 @@ struct MergeRule(ImplicitlyCopyable, Movable, Writable):
     @always_inline("nodebug")
     def write_to(self, mut writer: Some[Writer]):
         writer.write(self.input_id_pair, " -> ", self.merge_id)
+
+
+struct PairCounts(Movable, Sized):
+    """Counts of adjacent id pairs, kept in first-occurrence order.
+
+    Mojo's `Dict` has no entry API, so counting through a `Counter` costs two
+    hash probes per pair -- one to read the count, one to write it back -- and
+    then another probe per distinct pair to find the maximum. Holding the
+    counts in a list beside the index makes a repeated pair a single probe and
+    the maximum scan hash-free. Pairs are keyed by `IDPair.packed()`.
+    """
+
+    var _slot: Dict[Int, Int]
+    var _pairs: List[IDPair]
+    var _counts: List[Int]
+
+    def __init__(out self):
+        self._slot = Dict[Int, Int]()
+        self._pairs = List[IDPair]()
+        self._counts = List[Int]()
+
+    @always_inline("nodebug")
+    def __len__(self) -> Int:
+        return len(self._pairs)
+
+    def clear(mut self):
+        self._slot.clear()
+        self._pairs.clear()
+        self._counts.clear()
+
+    @always_inline("nodebug")
+    def add(mut self, key: Int) raises:
+        """Count one occurrence of the pair packed into `key`."""
+        var i = self._slot.get(key, -1)
+        if i >= 0:
+            self._counts[i] += 1
+        else:
+            self._slot[key] = len(self._pairs)
+            self._pairs.append(IDPair.from_packed(key))
+            self._counts.append(1)
+
+    @always_inline("nodebug")
+    def count(self, pair: IDPair) raises -> Int:
+        """How often `pair` was seen, 0 if never."""
+        var i = self._slot.get(pair.packed(), -1)
+        return self._counts[i] if i >= 0 else 0
+
+    def max_pair(self, merges_done: Int) raises -> IDPair:
+        """The most frequent pair, ties going to the first occurrence.
+
+        Args:
+            merges_done: Merges completed so far, used for the error message.
+
+        Raises:
+            If no pairs were counted, i.e. the text is already fully merged
+            and the requested vocab size cannot be reached.
+        """
+        if len(self._pairs) == 0:
+            raise Error(
+                "vocab size too large: the text is fully merged after ",
+                merges_done,
+                " merges, so no pair is left to merge (the largest usable",
+                " vocab size for this text is ",
+                256 + merges_done,
+                ")",
+            )
+
+        var best = 0
+        for i in range(1, len(self._counts)):
+            if self._counts[i] > self._counts[best]:
+                best = i
+        return self._pairs[best]
 
 
 struct MergeManager:
@@ -149,63 +221,17 @@ struct MergeManager:
 
     @staticmethod
     @always_inline("nodebug")
-    def update_stats_and_keys(
-        mut stats: Counter[Int], mut keys: List[IDPair], ids: List[Int]
-    ) raises -> None:
+    def update_stats(mut stats: PairCounts, ids: List[Int]) raises -> None:
         for i in range(0, len(ids) - 1):
-            var key = (ids[i] << 32) | ids[i + 1]
-            # `Counter.__getitem__` is 0 for an absent key, so the count also
-            # tells us whether this is the first sighting -- no extra probe.
-            var count = stats[key]
-            stats[key] = count + 1
-            if count == 0:
-                keys.append(IDPair.from_packed(key))
-
-    @staticmethod
-    @always_inline("nodebug")
-    def get_max_pair(
-        stats: Counter[Int], unique_id_pairs: List[IDPair], merges_done: Int
-    ) raises -> IDPair:
-        """Return the most frequent pair, ties going to the first occurrence.
-
-        Args:
-            stats: Occurrence counts for every pair seen this round.
-            unique_id_pairs: The pairs, in first-occurrence order.
-            merges_done: Merges completed so far, used for the error message.
-
-        Raises:
-            If no pairs remain, i.e. the text is already fully merged and the
-            requested vocab size cannot be reached.
-        """
-        if len(unique_id_pairs) == 0:
-            raise Error(
-                "vocab size too large: the text is fully merged after ",
-                merges_done,
-                " merges, so no pair is left to merge (the largest usable",
-                " vocab size for this text is ",
-                256 + merges_done,
-                ")",
-            )
-
-        var max_pair = unique_id_pairs[0]
-        var max_val = stats.get(max_pair.packed(), -1)
-
-        for j in range(1, len(unique_id_pairs)):
-            var val = stats.get(unique_id_pairs[j].packed(), -1)
-            if val > max_val:
-                max_val = val
-                max_pair = unique_id_pairs[j]
-        return max_pair
+            stats.add((ids[i] << 32) | ids[i + 1])
 
     @staticmethod
     @always_inline("nodebug")
     def update_stats_get_max(
-        mut stats: Counter[Int], ids: List[Int], merges_done: Int = 0
+        mut stats: PairCounts, ids: List[Int], merges_done: Int = 0
     ) raises -> IDPair:
-        var unique_id_pairs = List[IDPair]()
-        MergeManager.update_stats_and_keys(stats, unique_id_pairs, ids)
-
-        return MergeManager.get_max_pair(stats, unique_id_pairs, merges_done)
+        MergeManager.update_stats(stats, ids)
+        return stats.max_pair(merges_done)
 
     @staticmethod
     @always_inline("nodebug")

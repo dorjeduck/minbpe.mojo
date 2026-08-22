@@ -1,7 +1,13 @@
-from std.collections import Counter
 from std.python import Python, PythonObject
 
-from .utils import IDPair, MergeManager, MergeRule, VocabManager, TokenData
+from .utils import (
+    IDPair,
+    MergeManager,
+    MergeRule,
+    PairCounts,
+    TokenData,
+    VocabManager,
+)
 from .standards import GPT2_SPLIT_PATTERN, GPT4_SPLIT_PATTERN
 from .tokenizer import Tokenizer
 
@@ -70,22 +76,15 @@ struct RegexTokenizer[
 
         self.vocab_manager.build_vocab()
 
-        var unique_id_pairs = List[IDPair]()
-        var stats = Counter[Int]()
+        var stats = PairCounts()
         for i in range(num_merges):
             stats.clear()
 
-            unique_id_pairs.clear()
-
             for chunk_ids in ids:
                 if len(chunk_ids) > 1:
-                    MergeManager.update_stats_and_keys(
-                        stats, unique_id_pairs, chunk_ids
-                    )
+                    MergeManager.update_stats(stats, chunk_ids)
 
-            var max_pair = MergeManager.get_max_pair(
-                stats, unique_id_pairs, i
-            )
+            var max_pair = stats.max_pair(i)
 
             var idx = 256 + i
             var merge_rule = MergeRule(max_pair, idx)
@@ -102,7 +101,7 @@ struct RegexTokenizer[
                     num_merges,
                     merge_rule,
                     new_vocab,
-                    stats.get(max_pair.packed(), -1),
+                    stats.count(max_pair),
                 )
 
     def encode_ordinary(mut self, text: String) raises -> List[Int]:

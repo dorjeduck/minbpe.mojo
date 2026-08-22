@@ -1,6 +1,10 @@
-from std.collections import Counter
-
-from .utils import IDPair, MergeManager, MergeRule, VocabManager
+from .utils import (
+    IDPair,
+    MergeManager,
+    MergeRule,
+    PairCounts,
+    VocabManager,
+)
 
 from .tokenizer import Tokenizer
 
@@ -34,7 +38,7 @@ struct BasicTokenizer(Tokenizer):
 
         self.vocab_manager.build_vocab()
 
-        var stats = Counter[Int]()
+        var stats = PairCounts()
         for i in range(num_merges):
             stats.clear()
 
@@ -54,7 +58,7 @@ struct BasicTokenizer(Tokenizer):
                     num_merges,
                     merge_rule,
                     new_vocab,
-                    stats.get(max_pair.packed(), -1),
+                    stats.count(max_pair),
                 )
 
     def encode(mut self, text: String) raises -> List[Int]:
