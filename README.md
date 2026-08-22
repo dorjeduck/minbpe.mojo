@@ -66,13 +66,26 @@ pixi run test
 
 - 2026.08.22
   - Update to Mojo 1.0
-  - Replaced the vendored `CompactDict` copy with the Mojo standard library's `Dict`, `Set` and `Counter`
-  - Fixed a merge tie-break discrepancy: training output now matches the reference `minbpe` implementation exactly
-  - Fixed UTF-8 decoding: the vocab now stores raw bytes, so multi-byte codepoints survive a decode round-trip
-  - `train` now raises a descriptive error when `vocab_size` exceeds what the text supports, instead of failing with an out-of-bounds access
-  - Added a test suite (`tests/test_minbpe.mojo`)
-  - Fixed `load`: merges are now replayed into the vocab, so a loaded tokenizer can decode and not just encode
-  - Added `benchmarks/`: the Mojo benchmark now averages 10 timed rounds after 2 warmup rounds on a fresh tokenizer per round, and the same workload runs against Karpathy's Python `minbpe` and Gregor Purdy's Rust port for a three-way comparison ([benchmarks/benchmark.md](benchmarks/benchmark.md))
+  - Replaced the vendored `CompactDict` copy with the Mojo standard library's `Dict` and `Set`
+  - Added a test suite (`tests/test_minbpe.mojo`, `pixi run test`)
+  - Added `benchmarks/`, which runs the same workload against Karpathy's Python `minbpe` and Gregor Purdy's Rust port ([benchmarks/benchmark.md](benchmarks/benchmark.md))
+
+  Correctness:
+  - Merge tie-breaks were resolved incorrectly by the vendored counter; training output now matches the reference `minbpe` implementation exactly
+  - Decoding was lossy for non-ASCII: the vocab now stores raw bytes, so multi-byte codepoints survive a round-trip
+  - `load` replays merges into the vocab, so a loaded tokenizer can decode and not just encode
+  - `save`/`load` take a file prefix and append `.model` again, as `minbpe` does
+  - `set_pattern` compiles the pattern it is given rather than the compile-time default
+  - `RegexTokenizer.clear` keeps the split pattern, so the tokenizer can still be trained afterwards
+  - `ALLOWED_SPECIAL="none_raise"` raises instead of printing a warning
+  - `train` raises a descriptive error when `vocab_size` exceeds what the text supports, instead of reading out of bounds
+  - Removed `BasicTokenizer.register_special_tokens`, which accepted tokens and silently dropped them
+
+  Performance (overall 1.27s to 0.85s, now 1.4x faster than the Rust port):
+  - Decoding no longer copies each token out of the vocab dictionary
+  - The hot loops key on a packed pair instead of hashing `IDPair`
+  - `PairCounts` replaces the pair `Counter`, halving the hash probes when counting and removing them from the maximum scan
+
 - 2025.08.07
   - Update to Mojo 25.5
 - 2024.10.09
