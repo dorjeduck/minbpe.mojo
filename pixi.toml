@@ -1,11 +1,34 @@
 [workspace]
 authors = ["Martin Dudek <martin.dudek@gmail.com>"]
-channels = ["https://conda.modular.com/max-nightly", "conda-forge"]
+channels = ["https://conda.modular.com/max", "conda-forge"]
 name = "llm.mojo"
 platforms = ["osx-arm64", "linux-64", "linux-aarch64"]
 version = "0.1.0"
 
 [tasks]
+bench = "mojo run -I . benchmarks/benchmark.mojo"
+test = "mojo run -I . tests/test_minbpe.mojo"
+train = "mojo run train.mojo"
 
 [dependencies]
-mojo = "25.5.*"
+mojo = "1.0.*"
+regex = "*"
+
+# Reference benchmark against Karpathy's Python minbpe. Kept out of the default
+# environment so a normal install stays Mojo-only:
+#   pixi run -e bench setup-reference
+#   pixi run -e bench bench-python
+[feature.bench.dependencies]
+# minbpe's __init__ imports GPT4Tokenizer, which needs tiktoken, even though
+# the benchmark only exercises BasicTokenizer and RegexTokenizer.
+tiktoken = "*"
+
+[feature.bench.tasks]
+setup-reference = "git clone --depth 1 https://github.com/karpathy/minbpe .reference/minbpe"
+bench-python = "python benchmarks/benchmark.py"
+chart = "python benchmarks/chart.py"
+# Needs a system cargo; the crate pulls minbpe-rs from git.
+bench-rust = "cargo run --release --quiet --manifest-path benchmarks/rs/Cargo.toml"
+
+[environments]
+bench = ["bench"]

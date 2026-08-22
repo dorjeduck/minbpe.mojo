@@ -1,9 +1,7 @@
-from algorithm import parallelize
-from python import Python, PythonObject
-from time import perf_counter_ns as now
+from std.collections import Counter
+from std.python import Python, PythonObject
 
 from .utils import IDPair, MergeManager, MergeRule, VocabManager, TokenData
-from .utils.generic_dict import CounterDict
 from .standards import GPT2_SPLIT_PATTERN, GPT4_SPLIT_PATTERN
 from .tokenizer import Tokenizer
 
@@ -22,33 +20,33 @@ struct RegexTokenizer[
 
     var tmp_list: List[Int]
 
-    fn __init__(out self) raises:
+    def __init__(out self) raises:
         self.regex = Python.import_module("regex")
-        self.pattern = PATTERN
-        self.compiled_pattern = self.regex.compile(PATTERN)
+        self.pattern = Self.PATTERN
+        self.compiled_pattern = self.regex.compile(Self.PATTERN)
         self.tmp_list = List[Int]()
 
         self.merge_manager = MergeManager()
         self.vocab_manager = VocabManager()
 
-    fn clear(mut self) raises:
+    def clear(mut self) raises:
         self.pattern = ""
         self.compiled_pattern = PythonObject()
         self.merge_manager.clear()
         self.vocab_manager.clear()
         self.vocab_manager.build_vocab()
 
-    fn register_special_tokens(mut self, special_tokens_str: String) raises:
+    def register_special_tokens(mut self, special_tokens_str: String) raises:
         self.vocab_manager.register_special_tokens(special_tokens_str)
 
-    fn set_pattern(mut self, pattern: String) raises -> None:
+    def set_pattern(mut self, pattern: String) raises -> None:
         self.pattern = pattern
-        self.compiled_pattern = self.regex.compile(PATTERN)
+        self.compiled_pattern = self.regex.compile(Self.PATTERN)
 
-    fn get_split_pattern(self) -> String:
+    def get_split_pattern(self) -> String:
         return self.pattern
 
-    fn train(
+    def train(
         mut self, text: String, vocab_size: Int, verbose: Bool = True
     ) raises -> None:
         if verbose:
@@ -67,11 +65,10 @@ struct RegexTokenizer[
         for i in range(len(text_chunks)):
             ids.append(VocabManager.text_to_bytes(String(text_chunks[i])))
 
-        for idx in range(256):
-            self.vocab_manager.add_token(idx, chr(idx))
+        self.vocab_manager.build_vocab()
 
         var unique_id_pairs = List[IDPair]()
-        var stats = CounterDict()
+        var stats = Counter[IDPair]()
         for i in range(num_merges):
             stats.clear()
 
@@ -83,14 +80,9 @@ struct RegexTokenizer[
                         stats, unique_id_pairs, chunk_ids
                     )
 
-            var max_pair = unique_id_pairs[0]
-            var max_val = stats.get(max_pair, -1)
-
-            for j in range(1, len(unique_id_pairs)):
-                var val = stats.get(unique_id_pairs[j], -1)
-                if val > max_val:
-                    max_val = val
-                    max_pair = unique_id_pairs[j]
+            var max_pair = MergeManager.get_max_pair(
+                stats, unique_id_pairs, i
+            )
 
             var idx = 256 + i
             var merge_rule = MergeRule(max_pair, idx)
@@ -110,7 +102,7 @@ struct RegexTokenizer[
                     stats.get(max_pair, -1),
                 )
 
-    fn encode_ordinary(mut self, text: String) raises -> List[Int]:
+    def encode_ordinary(mut self, text: String) raises -> List[Int]:
         """Encoding that ignores any special tokens."""
 
         # split text into chunks of text by categories defined in regex pattern
@@ -129,9 +121,9 @@ struct RegexTokenizer[
             for ci in chunk_ids:
                 ids.append(ci)
 
-        return ids
+        return ids^
 
-    fn encode(mut self, text: String) raises -> List[Int]:
+    def encode(mut self, text: String) raises -> List[Int]:
         """
         Unlike encode_ordinary, this function handles special tokens.
         allowed_special: can be "all"|"none"|"none_raise" or a custom set of special tokens
@@ -141,11 +133,11 @@ struct RegexTokenizer[
         """
         # decode the user desire w.r.t. handling of special tokens
         var special: Bool
-        if ALLOWED_SPECIAL == "all":
+        if Self.ALLOWED_SPECIAL == "all":
             special = True
-        elif ALLOWED_SPECIAL == "none":
+        elif Self.ALLOWED_SPECIAL == "none":
             special = False
-        elif ALLOWED_SPECIAL == "none_raise":
+        elif Self.ALLOWED_SPECIAL == "none_raise":
             if self.vocab_manager.check_special_token_in_text(text):
                 print("warning: special token in text")
             special = False
@@ -155,7 +147,7 @@ struct RegexTokenizer[
             ##print ValueError(f"allowed_special={allowed_special} not understood")
             print(
                 "warning: "
-                + String(ALLOWED_SPECIAL)
+                + String(Self.ALLOWED_SPECIAL)
                 + " not understood, set to none"
             )
             special = False
@@ -189,16 +181,16 @@ struct RegexTokenizer[
                 for e in enc:
                     ids.append(e)
 
-        return ids
+        return ids^
 
-    fn decode(mut self, ids: List[Int]) raises -> String:
+    def decode(mut self, ids: List[Int]) raises -> String:
         return self.vocab_manager.get_tokens(ids, True)
 
-    fn load(mut self, model_file: String) raises -> None:
+    def load(mut self, model_file: String) raises -> None:
         """Inverse of save() but only for the model file."""
 
         with open(model_file, "r") as f:
-            var lines = f.read().split("\n")
+            var lines = f.read().splitlines()
             # check version
             debug_assert(
                 lines[0].strip() == "minbpe v1",
@@ -218,26 +210,26 @@ struct RegexTokenizer[
 
             var idx = 256
             for line_number in range(3 + num_special, len(lines)):
-                if len(lines[line_number].strip()) == 0:
+                if lines[line_number].strip().byte_length() == 0:
                     continue
                 var t = lines[line_number].strip().split(" ")
-                self.merge_manager.add_rule(
-                    MergeRule(
-                        IDPair(Int(t[0]), Int(t[1])),
-                        idx + line_number - num_special - 3,
-                    )
-                )
+                var rule = MergeRule(IDPair(String(t[0]), String(t[1])), idx)
+                self.merge_manager.add_rule(rule)
+                # Replay the merge into the vocab; without this the loaded
+                # tokenizer can encode but not decode.
+                _ = self.vocab_manager.add_token(rule)
+                idx += 1
 
-    fn save(self, model_file: String) raises -> None:
+    def save(self, model_file: String) raises -> None:
         with open(model_file, "w") as f:
             # write the version, pattern and merges, that's all that's needed
-            f.write(String("minbpe v1\n"))
+            f.write("minbpe v1\n")
 
-            f.write(PATTERN + "\n")
+            f.write(Self.PATTERN, "\n")
 
             var len_special_tokens = len(self.vocab_manager.special_token_list)
 
-            f.write(String(len_special_tokens) + "\n")
+            f.write(len_special_tokens, "\n")
 
             for st in self.vocab_manager.special_token_list:
                 f.write(st.get_model_string() + "\n")

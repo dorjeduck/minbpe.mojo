@@ -1,6 +1,6 @@
+from std.collections import Counter
+
 from .utils import IDPair, MergeManager, MergeRule, VocabManager
-from .utils.generic_dict import CounterDict
-from .utils.tat import IntKey
 
 from .tokenizer import Tokenizer
 
@@ -9,22 +9,22 @@ struct BasicTokenizer(Tokenizer):
     var merge_manager: MergeManager
     var vocab_manager: VocabManager
 
-    fn __init__(out self) raises: 
+    def __init__(out self) raises: 
         self.merge_manager = MergeManager()
         self.vocab_manager = VocabManager()
 
-    fn clear(mut self) raises:
+    def clear(mut self) raises:
         self.merge_manager.clear()
         self.vocab_manager.clear()
         self.vocab_manager.build_vocab()
 
-    fn register_special_tokens(mut self, special_tokens_str: String) raises:
+    def register_special_tokens(mut self, special_tokens_str: String) raises:
         self.vocab_manager.register_special_tokens(special_tokens_str)
 
-    fn get_split_pattern(self) -> String:
+    def get_split_pattern(self) -> String:
         return ""
 
-    fn train(
+    def train(
         mut self, text: String, vocab_size: Int, verbose: Bool = False
     ) raises -> None:
         if verbose:
@@ -35,14 +35,13 @@ struct BasicTokenizer(Tokenizer):
         var num_merges = vocab_size - 256
         var ids = VocabManager.text_to_bytes(text)
 
-        for idx in range(256):
-            self.vocab_manager.add_token(idx, chr(idx))
+        self.vocab_manager.build_vocab()
 
-        var stats = CounterDict()
+        var stats = Counter[IDPair]()
         for i in range(num_merges):
             stats.clear()
 
-            var max_pair = self.merge_manager.update_stats_get_max(stats, ids)
+            var max_pair = MergeManager.update_stats_get_max(stats, ids, i)
 
             var idx = 256 + i
             var merge_rule = MergeRule(max_pair, idx)
@@ -61,20 +60,20 @@ struct BasicTokenizer(Tokenizer):
                     stats.get(max_pair, -1),
                 )
 
-    fn encode(mut self, text: String) raises -> List[Int]:
+    def encode(mut self, text: String) raises -> List[Int]:
         var ids = VocabManager.text_to_bytes(text)
         self.merge_manager.apply_rules(ids)
-        return ids
+        return ids^
 
-    fn decode(mut self, ids: List[Int]) raises -> String:
+    def decode(mut self, ids: List[Int]) raises -> String:
         return self.vocab_manager.get_tokens(ids)
 
-    fn load(mut self, model_file: String) raises -> None:
+    def load(mut self, model_file: String) raises -> None:
         """Inverse of save() but only for the model file."""
 
         # read the model file
         with open(model_file, "r") as f:
-            var lines:List[String] = f.read().splitlines()
+            var lines = f.read().splitlines()
             # check version
             debug_assert(
                 lines[0].strip() == "minbpe v1",
@@ -82,21 +81,24 @@ struct BasicTokenizer(Tokenizer):
             )
             # no pattern (empty line)
             # no special tokens (0 line)
-            var idx: Int = 256
+            var idx = 256
             for line_number in range(3, len(lines)):
-                if len(lines[line_number].strip()) == 0:
+                if lines[line_number].strip().byte_length() == 0:
                     continue
                 var t = lines[line_number].strip().split(" ")
-                self.merge_manager.add_rule(
-                    MergeRule(IDPair(Int(t[0]), Int(t[1])), Int(idx + line_number - 3))
-                )
+                var rule = MergeRule(IDPair(String(t[0]), String(t[1])), idx)
+                self.merge_manager.add_rule(rule)
+                # Replay the merge into the vocab; without this the loaded
+                # tokenizer can encode but not decode.
+                _ = self.vocab_manager.add_token(rule)
+                idx += 1
 
-    fn save(self, model_file: String) raises -> None:
+    def save(self, model_file: String) raises -> None:
         with open(model_file, "w") as f:
             # write the version, pattern and merges, that's all that's needed
-            f.write(String("minbpe v1\n"))
-            f.write(String("\n"))  # no special pattern
-            f.write(String("0\n"))  # no special token
+            f.write("minbpe v1\n")
+            f.write("\n")  # no special pattern
+            f.write("0\n")  # no special token
 
             for mr in self.merge_manager.merge_rules:
                 f.write(mr.input_id_pair.get_model_string() + "\n")

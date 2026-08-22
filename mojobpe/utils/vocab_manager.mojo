@@ -1,103 +1,95 @@
-from algorithm import parallelize
-from python import Python, PythonObject
+from std.python import Python, PythonObject
 
-from .merge_manager import MergeManager
-from .string_dict import Dict as StringDict
-from .generic_dict import Dict as GenericDict,Keyable,KeyElement,KeysBuilder
-from .tat import distribute_jobs, print_list_int, IntKey
+from .merge_manager import MergeManager, MergeRule
 
-alias SPECIAL_TOKENS_PATTERN = r"(['\"])(.*?)\1\s*:\s*(\d+)"
+comptime SPECIAL_TOKENS_PATTERN = r"(['\"])(.*?)\1\s*:\s*(\d+)"
+
 
 @fieldwise_init
-struct TokenData(Copyable & Movable):
-    
+struct TokenData(Equatable, Hashable, ImplicitlyCopyable, Movable, Writable):
     var token: String
     var id: Int
 
-    fn __eq__(self, other: Self) -> Bool:
-        return self.id == other.id and self.token == other.token
+    def write_to(self, mut writer: Some[Writer]):
+        writer.write("('", self.token, "': ", self.id, ")")
 
-    fn __ne__(self, other: Self) -> Bool:
-        return self.id != other.id or self.token != other.token
-
-    fn __str__(self) -> String:
-        return "('" + self.token + "': " + String(self.id) + ")"
-
-    fn __hash__(self) -> Int:
-        return Int(hash(self.id)) ^ Int(hash(self.token))
-
-    fn get_model_string(self) -> String:
+    def get_model_string(self) -> String:
         return self.token + " " + String(self.id)
 
 
 struct VocabManager:
-    var vocab: GenericDict[String]
-    var special_tokens: StringDict[String]
-    var inverse_special_tokens: GenericDict[String]
+    var vocab: Dict[Int, List[UInt8]]
+    var special_tokens: Dict[String, String]
+    var inverse_special_tokens: Dict[Int, String]
     var regex: PythonObject
 
     var special_token_list: List[TokenData]
 
-    fn __init__(out self) raises:
-        self.vocab = GenericDict[String](capacity=64)
-        self.special_tokens = StringDict[String]()
+    def __init__(out self) raises:
+        self.vocab = Dict[Int, List[UInt8]](capacity=64)
+        self.special_tokens = Dict[String, String]()
 
         self.special_token_list = List[TokenData]()
 
-        self.inverse_special_tokens = GenericDict[String](capacity=64)
+        self.inverse_special_tokens = Dict[Int, String](capacity=64)
         self.regex = Python.import_module("regex")
         self.build_vocab()
 
-    fn clear(mut self):
-    
+    def clear(mut self):
         self.vocab.clear()
         self.special_tokens.clear()
         self.inverse_special_tokens.clear()
         self.special_token_list.clear()
 
-    
-    fn add_token(mut self,mr:MergeRule) raises -> String:
+    def add_token(mut self, mr: MergeRule) raises -> String:
+        var new_vocab = self.get_token(Int(mr.input_id_pair.data[0]))
+        new_vocab.extend(self.get_token(Int(mr.input_id_pair.data[1])))
+        # Only for display: a merged token is a byte string, which need not be
+        # valid UTF-8 on its own.
+        var display = String(from_utf8_lossy=Span(new_vocab))
+        self.add_token(mr.merge_id, new_vocab^)
 
-        var new_vocab = self.get_token(Int(mr.input_id_pair.data[0])) +
-                        self.get_token(Int(mr.input_id_pair.data[1])) 
-        self.add_token(mr.merge_id,new_vocab)
-
-        return new_vocab
-
-    
-    @always_inline("nodebug")
-    fn add_token(mut self, idx: Int, token: String) raises -> None:
-        _ = self.vocab.put(IntKey(idx), token)
+        return display^
 
     @always_inline("nodebug")
-    fn get_token(mut self, idx: Int, include_special: Bool = False)  raises -> String:
-        #try:
-        var res = self.vocab.get(IntKey(idx), "")
+    def add_token(mut self, idx: Int, var token: List[UInt8]) raises -> None:
+        self.vocab[idx] = token^
+
+    @always_inline("nodebug")
+    def get_token(
+        mut self, idx: Int, include_special: Bool = False
+    ) raises -> List[UInt8]:
+        """Return the raw bytes of token `idx`, empty if unknown."""
+        var res = self.vocab.get(idx, List[UInt8]())
         if include_special and len(res) == 0:
-            res = self.get_special_token(idx)
-        return res
-        #except:
-        #    print("problem getting token for id",idx)
-        #    return ""
-
-    @always_inline("nodebug")
-    fn get_tokens(mut self, ids: List[Int,True], include_special: Bool = False
-    ) raises -> String:
-        var res = String(capacity=len(ids)*5)
-        for i in range(len(ids)):
-            res+=self.get_token(ids[i], include_special)
-
-        #res.optimize_memory()
+            var special = self.get_special_token(idx)
+            res = List[UInt8](Span(special.as_bytes()))
         return res^
 
-    
+    @always_inline("nodebug")
+    def get_tokens(
+        mut self, ids: List[Int], include_special: Bool = False
+    ) raises -> String:
+        """Decode `ids` back to text.
 
-    fn build_vocab(mut self) raises -> None:  # , special_tokens):
+        Token bytes are accumulated first and decoded once at the end: a token
+        can hold a partial UTF-8 sequence, so decoding per token would corrupt
+        any multi-byte codepoint that straddles a token boundary. Invalid
+        sequences in the result are replaced, mirroring minbpe's
+        `decode("utf-8", errors="replace")`.
+        """
+        var buf = List[UInt8](capacity=len(ids) * 5)
+        for i in range(len(ids)):
+            buf.extend(self.get_token(ids[i], include_special))
+
+        return String(from_utf8_lossy=Span(buf))
+
+    def build_vocab(mut self) raises -> None:
         # Initialize with single-byte tokens.
         for idx in range(256):
-            _ = self.vocab.put(IntKey(idx), chr(idx))
+            self.vocab[idx] = [UInt8(idx)]
 
-    fn register_special_tokens(mut self, special_tokens_str: String) raises:
+    def register_special_tokens(mut self, special_tokens_str: String) raises:
         var compiled_pattern = self.regex.compile(SPECIAL_TOKENS_PATTERN)
 
         var special_tokens = self.regex.findall(
@@ -105,25 +97,35 @@ struct VocabManager:
         )
 
         for st in special_tokens:
-            self.register_special_token(TokenData(String(st[1]), atol(String(st[2]))))
+            self.register_special_token(
+                TokenData(String(st[1]), atol(String(st[2])))
+            )
 
-    fn register_special_token(mut self, st: TokenData) raises:
-        self.special_tokens.put(st.token, String(st.id))
-        _ = self.inverse_special_tokens.put(IntKey(st.id), st.token)
+    def register_special_token(mut self, st: TokenData) raises:
+        self.special_tokens[st.token] = String(st.id)
+        self.inverse_special_tokens[st.id] = st.token
         self.special_token_list.append(st)
 
-    fn split_by_special_tokens(self, text: String) raises -> List[String]:
+    def split_by_special_tokens(self, text: String) raises -> List[String]:
         if len(self.special_token_list) == 0:
-            return List[String](text)
+            return [text]
 
         var special_pattern = String("(")
 
         for i in range(len(self.special_token_list) - 1):
             special_pattern += (
-                String(self.regex.escape(self.special_token_list[i].token)) + "|"
+                String(self.regex.escape(self.special_token_list[i].token))
+                + "|"
             )
         special_pattern += (
-            String(self.regex.escape(self.special_token_list[-1].token)) + ")"
+            String(
+                self.regex.escape(
+                    self.special_token_list[
+                        len(self.special_token_list) - 1
+                    ].token
+                )
+            )
+            + ")"
         )
 
         var compiled_pattern = self.regex.compile(special_pattern)
@@ -134,18 +136,18 @@ struct VocabManager:
 
         for sc in special_chunks:
             res.append(String(sc))
-        return res
+        return res^
 
     @always_inline("nodebug")
-    fn get_special_token_id(self, text: String) raises -> Int:
+    def get_special_token_id(self, text: String) raises -> Int:
         return atol(self.special_tokens.get(text, "-1"))
 
     @always_inline("nodebug")
-    fn get_special_token(mut self, id: Int) raises -> String:
-        return self.inverse_special_tokens.get(IntKey(id), "")
+    def get_special_token(mut self, id: Int) raises -> String:
+        return self.inverse_special_tokens.get(id, "")
 
     @always_inline("nodebug")
-    fn check_special_token_in_text(self, text: String) -> Bool:
+    def check_special_token_in_text(self, text: String) -> Bool:
         for st in self.special_token_list:
             if st.token in text:
                 return True
@@ -153,19 +155,17 @@ struct VocabManager:
 
     @staticmethod
     @always_inline("nodebug")
-    fn text_to_bytes(text: String) -> List[Int,True]:
-        
+    def text_to_bytes(text: String) -> List[Int]:
         var bs = text.as_bytes()
-        var ids = List[Int,True](capacity=len(bs))
-        
-        for i in range(len(text)):
+        var ids = List[Int](capacity=len(bs))
+
+        for i in range(len(bs)):
             ids.append(Int(bs[i]))
-        return ids
+        return ids^
 
     @staticmethod
     @always_inline("nodebug")
-    fn text_to_bytes(text: String,mut ids:List[Int,True]) :
+    def text_to_bytes(text: String, mut ids: List[Int]):
         var bs = text.as_bytes()
-        for i in range(len(text)):
+        for i in range(len(bs)):
             ids.append(Int(bs[i]))
-       

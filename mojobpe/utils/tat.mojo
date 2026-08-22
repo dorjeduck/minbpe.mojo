@@ -2,23 +2,8 @@
 # This and that #
 #################
 
-from utils import Variant
 
-from .generic_dict import Keyable, KeysBuilder
-
-alias IntOrString = Variant[Int, String]
-
-
-@fieldwise_init
-struct IntKey(Keyable):
-    var key: UInt64
-
-    @always_inline("nodebug")
-    fn accept[T: KeysBuilder](self, mut keys_builder: T):
-        keys_builder.add(self.key)
-
-
-fn distribute_jobs(n_jobs: Int, n_workers: Int, overlap: Int = 0) -> List[Int]:
+def distribute_jobs(n_jobs: Int, n_workers: Int, overlap: Int = 0) -> List[Int]:
     """
     Distribute n_jobs among n_workers and return a list of index boundaries for the job ranges.
 
@@ -52,21 +37,21 @@ fn distribute_jobs(n_jobs: Int, n_workers: Int, overlap: Int = 0) -> List[Int]:
     return boundaries
 
 
-fn print_list_str(x: List[String]) -> None:
+def print_list_str(x: List[String]) -> None:
     if len(x) == 0:
         return
 
     print("[", end="")
     for i in range(len(x) - 1):
         print(x[i], end=", ")
-    print(String(x[-1]) + "]")
+    print(String(x[len(x) - 1]) + "]")
 
 
-fn print_list_int(x: List[Int]) -> None:
+def print_list_int(x: List[Int]) -> None:
     if len(x) == 0:
         return
 
     print("[", end="")
     for i in range(len(x) - 1):
         print(x[i], end=", ")
-    print(String(x[-1]) + "]")
+    print(String(x[len(x) - 1]) + "]")

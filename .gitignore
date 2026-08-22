@@ -1,9 +1,12 @@
 .DS_Store
-/benchmarks
 /lab/*
 x*.*
-toy# pixi environments
+toy
+# pixi environments
 .pixi
 *.egg-info
 # magic environments
 .magic
+# reference checkouts for benchmark.py
+/.reference
+/benchmarks/rs/target

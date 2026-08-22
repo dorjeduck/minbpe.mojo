@@ -1,13 +1,12 @@
-from time import perf_counter_ns as now
+from std.time import perf_counter_ns as now
 
 from mojobpe import BasicTokenizer, RegexTokenizer
 from mojobpe.standards import GPT4_SPLIT_PATTERN, GPT4_SPECIAL_TOKENS
 from mojobpe.utils.tat import print_list_int
 
 
-fn main() raises:
+def main() raises:
     var text = open("tests/taylorswift.txt", "r").read()
-    var vocab_size = 512
 
     var start = now()
 

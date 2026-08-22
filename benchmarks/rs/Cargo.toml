@@ -1,0 +1,13 @@
+[package]
+name = "minbpe-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Gregor Purdy's Rust port of minbpe. Not on crates.io, so pulled from git.
+[dependencies]
+minbpe = { git = "https://github.com/gnp/minbpe-rs", rev = "b69dfa9" }
+
+[profile.release]
+lto = true
+codegen-units = 1

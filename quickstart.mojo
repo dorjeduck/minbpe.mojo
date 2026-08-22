@@ -1,7 +1,7 @@
 from mojobpe import Tokenizer,BasicTokenizer
 from mojobpe.utils.tat import print_list_int
 
-fn main() raises:
+def main() raises:
     var text = "aaabdaaabac"
 
     var tokenizer = BasicTokenizer()
@@ -9,7 +9,7 @@ fn main() raises:
     print_list_int(tokenizer.encode(text))
     # [258, 100, 258, 97, 99]
 
-    print(tokenizer.decode(List[Int](258, 100, 258, 97, 99)))
+    print(tokenizer.decode([258, 100, 258, 97, 99]))
     # aaabdaaabac
 
     tokenizer.save("toy")

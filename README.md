@@ -6,7 +6,7 @@ This project is a port of Andrej Karpathy's [minbpe](https://github.com/karpathy
 
 Not all features of `minpe` are available yet, but will be introduced as the project evolves. Currently, the main focus is on enhancing the performance of the core functionality.
 
-> **Note**: This project is based on the stable Mojo 25.5 release.
+> **Note**: This project is based on the stable Mojo 1.0 release.
 
 ## Implementation
 
@@ -23,7 +23,7 @@ Tokenizers in `minbpe.mojo` are implemented by confirming to the `Tokenizer` tra
 ## Quick Start
 
 - If you don't have it, install [pixi](https://pixi.sh/latest/):
-- Run `pixi shell` within the root of the cloned repository to install the project's dependencies (Mojo 25.5), and to activate the project's virtual environment in which you can run the mojo apps.
+- Run `pixi shell` within the root of the cloned repository to install the project's dependencies (Mojo 1.0), and to activate the project's virtual environment in which you can run the mojo apps.
 
 The [quick start](https://github.com/karpathy/minbpe?tab=readme-ov-file#quick-start) example from `minbpe` can be implement with `minbpe.mojo` as follows:
 
@@ -31,7 +31,7 @@ The [quick start](https://github.com/karpathy/minbpe?tab=readme-ov-file#quick-st
 from mojobpe import Tokenizer,BasicTokenizer
 from mojobpe.utils.tat import print_list_int
 
-fn main() raises:
+def main() raises:
     var text = "aaabdaaabac"
 
     var tokenizer = BasicTokenizer()
@@ -39,7 +39,7 @@ fn main() raises:
     print_list_int(tokenizer.encode(text))
     # [258, 100, 258, 97, 99]
 
-    print(tokenizer.decode(List[Int](258, 100, 258, 97, 99)))
+    print(tokenizer.decode([258, 100, 258, 97, 99]))
     # aaabdaaabac
 
     tokenizer.save("toy")
@@ -48,17 +48,33 @@ fn main() raises:
 
 ## Benchmarks
 
-A detailed benchmark analysis will be available soon.
+See [benchmarks/benchmark.md](benchmarks/benchmark.md) for a comparison against Karpathy's Python `minbpe` and Gregor Purdy's Rust port.
 
-For now we have included a Mojo port of `train.py` from the original repository, which times the training of both the Basic and Regex Tokenizer with the text from Taylor Swift's Wikipedia page. In our preliminary tests, the Mojo version proves to be approximately three times faster than the original Python implementation. You can run this training benchmark test using the following command:
+## Training
+
+`train.mojo` is a Mojo port of `train.py` from the original repository and writes the model files in `models/`:
 
 ```bash
-magic shell
-mojo train.mojo
+pixi run train
+```
+
+## Tests
+
+```bash
+pixi run test
 ```
 
 ## Changelog
 
+- 2026.08.22
+  - Update to Mojo 1.0
+  - Replaced the vendored `CompactDict` copy with the Mojo standard library's `Dict`, `Set` and `Counter`
+  - Fixed a merge tie-break discrepancy: training output now matches the reference `minbpe` implementation exactly
+  - Fixed UTF-8 decoding: the vocab now stores raw bytes, so multi-byte codepoints survive a decode round-trip
+  - `train` now raises a descriptive error when `vocab_size` exceeds what the text supports, instead of failing with an out-of-bounds access
+  - Added a test suite (`tests/test_minbpe.mojo`)
+  - Fixed `load`: merges are now replayed into the vocab, so a loaded tokenizer can decode and not just encode
+  - Added `benchmarks/`: the Mojo benchmark now averages 10 timed rounds after 2 warmup rounds on a fresh tokenizer per round, and the same workload runs against Karpathy's Python `minbpe` and Gregor Purdy's Rust port for a three-way comparison ([benchmarks/benchmark.md](benchmarks/benchmark.md))
 - 2025.08.07
   - Update to Mojo 25.5
 - 2024.10.09
@@ -76,8 +92,8 @@ mojo train.mojo
 
 ### Remarks
 
-- We achieved a significant performance boost by utilizing [Maxim Zaks'](https://github.com/mzaks) exceptional Mojo library, [CompactDict](https://github.com/mzaks/compact-dict), which provides blazing fast dictionary implementations. We've incorporated a slightly modified version of this library in the `mojobe.utils` folder (`generic_dict` and `string_dict`); all credits go to him.
-- [Gregor Purdy](https://github.com/gnp) has implemented an impressive [Rust port](https://github.com/gnp/minbpe-rs) of `minbpe`. In our initial tests, Gregor's port performs similar to our current Mojo port..
+- Up to the Mojo 25.5 release this port relied on [Maxim Zaks'](https://github.com/mzaks) excellent [CompactDict](https://github.com/mzaks/compact-dict) library, a slightly modified copy of which lived in `mojobpe/utils` (`generic_dict` and `string_dict`); all credits go to him. With Mojo 1.0 the standard library's `Dict`, `Set` and `Counter` cover our needs, so the vendored copy has been retired.
+- [Gregor Purdy](https://github.com/gnp) has implemented an impressive [Rust port](https://github.com/gnp/minbpe-rs) of `minbpe`, which `benchmarks/rs/` benchmarks alongside this one; see [benchmarks/benchmark.md](benchmarks/benchmark.md).
 
 ## License
 
