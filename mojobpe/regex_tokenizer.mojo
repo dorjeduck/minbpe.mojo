@@ -30,8 +30,11 @@ struct RegexTokenizer[
         self.vocab_manager = VocabManager()
 
     def clear(mut self) raises:
-        self.pattern = ""
-        self.compiled_pattern = PythonObject()
+        """Drop everything learned by `train`, keeping the split pattern.
+
+        The pattern is configuration, not learned state; clearing it would
+        leave the tokenizer unable to train again.
+        """
         self.merge_manager.clear()
         self.vocab_manager.clear()
         self.vocab_manager.build_vocab()
@@ -41,7 +44,7 @@ struct RegexTokenizer[
 
     def set_pattern(mut self, pattern: String) raises -> None:
         self.pattern = pattern
-        self.compiled_pattern = self.regex.compile(Self.PATTERN)
+        self.compiled_pattern = self.regex.compile(pattern)
 
     def get_split_pattern(self) -> String:
         return self.pattern
@@ -132,25 +135,25 @@ struct RegexTokenizer[
         any other behavior is either annoying, or a major footgun.
         """
         # decode the user desire w.r.t. handling of special tokens
+        comptime assert (
+            Self.ALLOWED_SPECIAL == "all"
+            or Self.ALLOWED_SPECIAL == "none"
+            or Self.ALLOWED_SPECIAL == "none_raise"
+        ), "ALLOWED_SPECIAL must be one of 'all', 'none', 'none_raise'"
+
         var special: Bool
-        if Self.ALLOWED_SPECIAL == "all":
+        comptime if Self.ALLOWED_SPECIAL == "all":
             special = True
         elif Self.ALLOWED_SPECIAL == "none":
             special = False
-        elif Self.ALLOWED_SPECIAL == "none_raise":
+        else:  # none_raise
             if self.vocab_manager.check_special_token_in_text(text):
-                print("warning: special token in text")
+                raise Error(
+                    "text contains a special token but ALLOWED_SPECIAL is"
+                    " 'none_raise'"
+                )
             special = False
-        # elif isinstance(allowed_special, set): Todo
-        #    special = {k: v for k, v in self.special_tokens.items() if k in allowed_special}
-        else:
-            ##print ValueError(f"allowed_special={allowed_special} not understood")
-            print(
-                "warning: "
-                + String(Self.ALLOWED_SPECIAL)
-                + " not understood, set to none"
-            )
-            special = False
+        # TODO: minbpe also accepts a set of permitted special tokens.
         if not special:
             # shortcut: if no special tokens, just use the ordinary encoding
             return self.encode_ordinary(text)

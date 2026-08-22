@@ -18,9 +18,6 @@ struct BasicTokenizer(Tokenizer):
         self.vocab_manager.clear()
         self.vocab_manager.build_vocab()
 
-    def register_special_tokens(mut self, special_tokens_str: String) raises:
-        self.vocab_manager.register_special_tokens(special_tokens_str)
-
     def get_split_pattern(self) -> String:
         return ""
 

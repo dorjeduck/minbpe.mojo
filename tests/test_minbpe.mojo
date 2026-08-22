@@ -8,7 +8,11 @@ from std.testing import (
 )
 
 from mojobpe import BasicTokenizer, RegexTokenizer
-from mojobpe.standards import GPT4_SPLIT_PATTERN, GPT4_SPECIAL_TOKENS
+from mojobpe.standards import (
+    GPT2_SPLIT_PATTERN,
+    GPT4_SPLIT_PATTERN,
+    GPT4_SPECIAL_TOKENS,
+)
 from mojobpe.utils import IDPair, MergeManager, MergeRule
 
 comptime TAYLORSWIFT = "tests/taylorswift.txt"
@@ -191,6 +195,37 @@ def test_vocab_size_too_large_regex() raises:
     var tokenizer = RegexTokenizer[GPT4_SPLIT_PATTERN]()
     with assert_raises(contains="vocab size too large"):
         tokenizer.train("abab", 256 + 8, False)
+
+
+def test_clear_keeps_pattern() raises:
+    """`clear` drops learned state; the split pattern is configuration."""
+    var tokenizer = RegexTokenizer[GPT4_SPLIT_PATTERN]()
+    tokenizer.train("hello world hello world", 260, False)
+    tokenizer.clear()
+
+    assert_equal(tokenizer.get_split_pattern(), GPT4_SPLIT_PATTERN)
+    # Must still be usable after clearing.
+    tokenizer.train("hello world hello world", 260, False)
+    assert_equal(tokenizer.decode(tokenizer.encode("hello")), "hello")
+
+
+def test_set_pattern() raises:
+    var tokenizer = RegexTokenizer[GPT4_SPLIT_PATTERN]()
+    tokenizer.set_pattern(GPT2_SPLIT_PATTERN)
+
+    assert_equal(tokenizer.get_split_pattern(), GPT2_SPLIT_PATTERN)
+    tokenizer.train("hello world hello world", 260, False)
+    assert_equal(tokenizer.decode(tokenizer.encode("hello")), "hello")
+
+
+def test_none_raise_rejects_special_token() raises:
+    var tokenizer = RegexTokenizer[GPT4_SPLIT_PATTERN, "none_raise"]()
+    tokenizer.register_special_tokens(GPT4_SPECIAL_TOKENS)
+    tokenizer.train("hello world hello world", 260, False)
+
+    assert_equal(tokenizer.decode(tokenizer.encode("hello")), "hello")
+    with assert_raises(contains="none_raise"):
+        _ = tokenizer.encode("hello<|endoftext|>world")
 
 
 def main() raises:
