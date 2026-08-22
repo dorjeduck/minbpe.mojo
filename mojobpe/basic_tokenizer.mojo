@@ -34,7 +34,7 @@ struct BasicTokenizer(Tokenizer):
 
         self.vocab_manager.build_vocab()
 
-        var stats = Counter[IDPair]()
+        var stats = Counter[Int]()
         for i in range(num_merges):
             stats.clear()
 
@@ -54,7 +54,7 @@ struct BasicTokenizer(Tokenizer):
                     num_merges,
                     merge_rule,
                     new_vocab,
-                    stats.get(max_pair, -1),
+                    stats.get(max_pair.packed(), -1),
                 )
 
     def encode(mut self, text: String) raises -> List[Int]:

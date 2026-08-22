@@ -72,15 +72,15 @@ faster Mojo is than the other two; below 1.00x means Mojo is slower.
 
 | | Python | Rust | Mojo | Mojo vs Python | Mojo vs Rust |
 |---|---:|---:|---:|---:|---:|
-| Basic — training | 4.2004 | 0.3105 | 0.4235 | 9.9x | 0.73x |
-| Basic — encoding | 4.7787 | 0.3249 | 0.3519 | 13.6x | 0.92x |
-| Basic — decoding | 0.0040 | 0.0031 | 0.0011 | 3.7x | 2.85x |
-| Basic — total | 8.9832 | 0.6386 | 0.7765 | 11.6x | 0.82x |
-| Regex — training | 6.9362 | 0.4904 | 0.4313 | 16.1x | 1.14x |
-| Regex — encoding | 0.1770 | 0.0390 | 0.0657 | 2.7x | 0.59x |
-| Regex — decoding | 0.0053 | 0.0019 | 0.0011 | 4.7x | 1.69x |
-| Regex — total | 7.1185 | 0.5313 | 0.4980 | 14.3x | 1.07x |
-| Overall | 16.1017 | 1.1698 | 1.2746 | 12.6x | 0.92x |
+| Basic — training | 4.2498 | 0.3078 | 0.3617 | 11.7x | 0.85x |
+| Basic — encoding | 4.1439 | 0.3165 | 0.2721 | 15.2x | 1.16x |
+| Basic — decoding | 0.0041 | 0.0031 | 0.0011 | 3.6x | 2.78x |
+| Basic — total | 8.3978 | 0.6275 | 0.6349 | 13.2x | 0.99x |
+| Regex — training | 6.0535 | 0.4971 | 0.3844 | 15.7x | 1.29x |
+| Regex — encoding | 0.1628 | 0.0390 | 0.0204 | 8.0x | 1.91x |
+| Regex — decoding | 0.0049 | 0.0018 | 0.0011 | 4.4x | 1.65x |
+| Regex — total | 6.2213 | 0.5379 | 0.4059 | 15.3x | 1.33x |
+| Overall | 14.6190 | 1.1654 | 1.0407 | 14.0x | 1.12x |
 
 ### Per-phase comparison
 

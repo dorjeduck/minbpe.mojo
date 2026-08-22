@@ -71,7 +71,7 @@ struct RegexTokenizer[
         self.vocab_manager.build_vocab()
 
         var unique_id_pairs = List[IDPair]()
-        var stats = Counter[IDPair]()
+        var stats = Counter[Int]()
         for i in range(num_merges):
             stats.clear()
 
@@ -102,7 +102,7 @@ struct RegexTokenizer[
                     num_merges,
                     merge_rule,
                     new_vocab,
-                    stats.get(max_pair, -1),
+                    stats.get(max_pair.packed(), -1),
                 )
 
     def encode_ordinary(mut self, text: String) raises -> List[Int]:

@@ -1,4 +1,5 @@
 from std.collections import Counter, Set
+from std.hashlib import Hasher
 
 from .tat import print_list_int, distribute_jobs
 
@@ -18,6 +19,27 @@ struct IDPair(Equatable, Hashable, ImplicitlyCopyable, Movable, Writable):
     @always_inline("nodebug")
     def __init__(out self, id1: String, id2: String) raises:
         self.data = SIMD[DType.uint64, 2](UInt64(atol(id1)), UInt64(atol(id2)))
+
+    @always_inline("nodebug")
+    def packed(self) -> Int:
+        """The pair as a single word, for use as a dictionary key.
+
+        Both ids are below 2^32, so they pack into one Int. Hashing that is
+        markedly cheaper than hashing the 16-byte SIMD, and the containers on
+        the hot paths key on it rather than on `IDPair`.
+        """
+        return Int((self.data[0] << 32) | self.data[1])
+
+    @staticmethod
+    @always_inline("nodebug")
+    def from_packed(key: Int) -> Self:
+        var k = UInt64(key)
+        return Self(Int(k >> 32), Int(k & 0xFFFFFFFF))
+
+    @always_inline("nodebug")
+    def __hash__[H: Hasher](self, mut hasher: H):
+        # The reflection default would hash all 16 bytes of `data`.
+        hasher.update((self.data[0] << 32) | self.data[1])
 
     @always_inline("nodebug")
     def write_to(self, mut writer: Some[Writer]):
@@ -53,12 +75,12 @@ struct MergeRule(ImplicitlyCopyable, Movable, Writable):
 
 struct MergeManager:
     var merge_rules: List[MergeRule]
-    var merge_rules_dict: Dict[IDPair, Int]
+    var merge_rules_dict: Dict[Int, Int]
 
     @always_inline("nodebug")
     def __init__(out self):
         self.merge_rules = List[MergeRule]()
-        self.merge_rules_dict = Dict[IDPair, Int]()
+        self.merge_rules_dict = Dict[Int, Int]()
 
     @always_inline("nodebug")
     def clear(mut self):
@@ -68,25 +90,31 @@ struct MergeManager:
     @always_inline("nodebug")
     def add_rule(mut self, merge_rule: MergeRule) raises:
         self.merge_rules.append(merge_rule)
-        self.merge_rules_dict[merge_rule.input_id_pair] = merge_rule.merge_id
+        self.merge_rules_dict[
+            merge_rule.input_id_pair.packed()
+        ] = merge_rule.merge_id
 
     @always_inline("nodebug")
     def apply_rules(mut self, mut ids: List[Int]) raises -> None:
         var UPPER_VAL: Int = 100000
 
-        var min_pair = IDPair()
         while True:
             var min_val = UPPER_VAL
+            var min_key = 0
 
-            var unique_pairs = MergeManager.get_unique_pairs(ids)
-            for up in unique_pairs:
-                var val = self.merge_rules_dict.get(up, UPPER_VAL)
+            # No need to deduplicate the pairs first: merge ids are unique, so
+            # repeated pairs simply re-find the same rank.
+            for i in range(len(ids) - 1):
+                var key = (ids[i] << 32) | ids[i + 1]
+                var val = self.merge_rules_dict.get(key, UPPER_VAL)
                 if val < min_val:
                     min_val = val
-                    min_pair = up
+                    min_key = key
 
             if min_val < UPPER_VAL:
-                MergeManager.merge(ids, MergeRule(min_pair, min_val))
+                MergeManager.merge(
+                    ids, MergeRule(IDPair.from_packed(min_key), min_val)
+                )
             else:
                 break
 
@@ -108,35 +136,35 @@ struct MergeManager:
 
     @staticmethod
     def get_unique_pairs(ids: List[Int]) raises -> List[IDPair]:
-        var tmp = Set[IDPair]()
+        var tmp = Set[Int]()
 
         var unique_pairs = List[IDPair]()
 
         for i in range(0, len(ids) - 1):
-            var p = IDPair(ids[i], ids[i + 1])
-            if not tmp.insert(p):
-                unique_pairs.append(p)
+            var key = (ids[i] << 32) | ids[i + 1]
+            if not tmp.insert(key):
+                unique_pairs.append(IDPair.from_packed(key))
 
         return unique_pairs^
 
     @staticmethod
     @always_inline("nodebug")
     def update_stats_and_keys(
-        mut stats: Counter[IDPair], mut keys: List[IDPair], ids: List[Int]
+        mut stats: Counter[Int], mut keys: List[IDPair], ids: List[Int]
     ) raises -> None:
         for i in range(0, len(ids) - 1):
-            var p = IDPair(ids[i], ids[i + 1])
+            var key = (ids[i] << 32) | ids[i + 1]
             # `Counter.__getitem__` is 0 for an absent key, so the count also
             # tells us whether this is the first sighting -- no extra probe.
-            var count = stats[p]
-            stats[p] = count + 1
+            var count = stats[key]
+            stats[key] = count + 1
             if count == 0:
-                keys.append(p)
+                keys.append(IDPair.from_packed(key))
 
     @staticmethod
     @always_inline("nodebug")
     def get_max_pair(
-        stats: Counter[IDPair], unique_id_pairs: List[IDPair], merges_done: Int
+        stats: Counter[Int], unique_id_pairs: List[IDPair], merges_done: Int
     ) raises -> IDPair:
         """Return the most frequent pair, ties going to the first occurrence.
 
@@ -160,10 +188,10 @@ struct MergeManager:
             )
 
         var max_pair = unique_id_pairs[0]
-        var max_val = stats.get(max_pair, -1)
+        var max_val = stats.get(max_pair.packed(), -1)
 
         for j in range(1, len(unique_id_pairs)):
-            var val = stats.get(unique_id_pairs[j], -1)
+            var val = stats.get(unique_id_pairs[j].packed(), -1)
             if val > max_val:
                 max_val = val
                 max_pair = unique_id_pairs[j]
@@ -172,7 +200,7 @@ struct MergeManager:
     @staticmethod
     @always_inline("nodebug")
     def update_stats_get_max(
-        mut stats: Counter[IDPair], ids: List[Int], merges_done: Int = 0
+        mut stats: Counter[Int], ids: List[Int], merges_done: Int = 0
     ) raises -> IDPair:
         var unique_id_pairs = List[IDPair]()
         MergeManager.update_stats_and_keys(stats, unique_id_pairs, ids)

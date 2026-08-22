@@ -112,15 +112,15 @@ def test_merge_manager_merge() raises:
 
 
 def test_merge_manager_stats() raises:
-    var stats = Counter[IDPair]()
+    var stats = Counter[Int]()
     var keys = List[IDPair]()
     var ids: List[Int] = [97, 98, 97, 98]
     MergeManager.update_stats_and_keys(stats, keys, ids)
 
     assert_equal(len(keys), 2)
-    assert_equal(stats.get(IDPair(97, 98), 0), 2)
-    assert_equal(stats.get(IDPair(98, 97), 0), 1)
-    assert_equal(stats.get(IDPair(1, 2), 0), 0)
+    assert_equal(stats.get(IDPair(97, 98).packed(), 0), 2)
+    assert_equal(stats.get(IDPair(98, 97).packed(), 0), 1)
+    assert_equal(stats.get(IDPair(1, 2).packed(), 0), 0)
 
 
 def test_idpair_as_key() raises:
@@ -226,6 +226,16 @@ def test_none_raise_rejects_special_token() raises:
     assert_equal(tokenizer.decode(tokenizer.encode("hello")), "hello")
     with assert_raises(contains="none_raise"):
         _ = tokenizer.encode("hello<|endoftext|>world")
+
+
+def test_idpair_packed_roundtrip() raises:
+    """`packed` is the dictionary key on the hot paths; it must be lossless."""
+    for a in [0, 1, 255, 256, 511, 100257, 4294967295]:
+        for b in [0, 1, 255, 256, 511, 100257, 4294967295]:
+            var p = IDPair(a, b)
+            assert_equal(IDPair.from_packed(p.packed()), p)
+
+    assert_true(IDPair(1, 2).packed() != IDPair(2, 1).packed())
 
 
 def main() raises:
